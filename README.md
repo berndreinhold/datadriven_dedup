@@ -15,6 +15,8 @@ Maybe one could also share these csv-files in the google drive?
 
 Some statistics on the output is provided in [csv_statistics_count_days.txt](csv_statistics_count_days.txt): Total: more than 8 Million measurements
 
+**ToDo: need to create a directory structure as part of the preprocessing**
+
 ## 2. aggregation_step.ipynb: aggregate into statistics per days: mean, rms (or stddev), min, max, count
 Output is one csv-file containing approx. 8000 lines, with the aggregate per days and statistical variables.
 Aggregate per week is possible as well.
