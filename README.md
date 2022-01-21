@@ -24,3 +24,12 @@ Aggregate per week is possible as well.
 ## 3. duplicates: combine with the OpenAPS data file in a smart way.
 Basic idea: if the statistical variables per day are very __"similar"__ in both datasets (OpenAPS and OPENonOH), then these are duplicate candidates. A distance metric to define __"similar"__ needs to be worked out. A join between the two datasets can involve the date.
 
+
+## naming conventions
+following: https://pythonguides.com/python-naming-conventions/
+
+functions and variables: snake
+classes: camelCase, 
+	starting with a lowercase letter
+
+
