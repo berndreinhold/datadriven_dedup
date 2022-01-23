@@ -28,7 +28,7 @@ Basic idea: if the statistical variables per day are very __"similar"__ in both 
 ## naming conventions
 following: https://pythonguides.com/python-naming-conventions/
 
-functions and variables: snake
+functions and variables: snake case
 classes: camelCase, 
 	starting with a lowercase letter
 
