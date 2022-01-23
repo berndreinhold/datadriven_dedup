@@ -4,6 +4,8 @@ import os
 import pandas as pd
 import glob
 
+error_statistics = {}
+key_error_statistics = {}
 
 def load_one_json(dir_name, file_name):
     with open(os.path.join(dir_name, file_name)) as f:
@@ -18,30 +20,33 @@ def load_one_json(dir_name, file_name):
 def one_json2csv(entries, dir_name, outfile_name, column_list):
     data = list()
     for i, entry in enumerate(entries):
-        if i % 10000 == 0: print(entry)
+        # if i % 10000 == 0: print(entry)
         try:
             data.append([entry[column] for column in column_list])
         except KeyError as e:
-            print(f"{i}, key_error: {e}")
-            
+            if e in key_error_statistics.keys():
+                key_error_statistics[e] += 1
+            else:
+                key_error_statistics[e] = 1            
+        except Exception as e:
+            if e in error_statistics.keys():
+                error_statistics[e] += 1
+            else:
+                error_statistics[e] = 1            
 
     df = pd.DataFrame(data=data, columns=column_list)
     df.to_csv(os.path.join(dir_name, outfile_name))
-#print(my_dict[0])
 
 # %%
-# gunzip json.gz to json files
-dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/00749582/69754"
-file_name = "entries__to_2018-06-07.json"
-# dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/Open Humans Data/00749582/69756"
-# file_name = "profile__to_2018-06-07.json"
-    
-dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/"
-search_string = os.path.join(f"{dir_name}","**","*.json.gz")
-print(search_string)
-for i, f in enumerate(glob.glob(search_string, recursive=True)):
-    os.system(f"gunzip {f}")
-    if i % 100 == 0: print(i, f)
+
+def gunzip_json_gz(dir_name, pattern_="*.json.gz"):
+    # gunzip json.gz to json files
+    # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/00749582/69754"
+    search_string = os.path.join(dir_name,"**", pattern_)
+    print("gunzip *.json.gz: search_string: ", search_string)
+    for i, f in enumerate(glob.glob(search_string, recursive=True)):
+        os.system(f"gunzip {f}")
+        if i % 100 == 0: print(i, f)
 
 
 
@@ -65,12 +70,10 @@ def kinds_of_files(dir_name, file_ending):
     return file_types
 
 # %%
-file_types = kinds_of_files(dir_name, "*.json")
-print(file_types)
 
 # %%
 def all_entries_json2csv(indir_name, outdir_name, column_list):
-    for i, f in enumerate(glob.glob(os.path.join(f"{indir_name}","**", "entries*.json"), recursive=True)):
+    for i, f in enumerate(sorted(glob.glob(os.path.join(f"{indir_name}","**", "entries*.json"), recursive=True))):
         head, tail = os.path.split(f)
         sub_dirs = head[len(indir_name):]
         dir_name_components = sub_dirs.split("/")
@@ -78,7 +81,7 @@ def all_entries_json2csv(indir_name, outdir_name, column_list):
         first, second = dir_name_components[0], dir_name_components[1]  
         filename, _ = os.path.splitext(tail)
         entries = load_one_json(head, tail)
-        # print(outdir_name, os.path.join(first + "_" + second + "_" + filename + ".csv")
+        print(os.path.join(first + "_" + second + "_" + filename + ".csv"), len(entries))
         if len(entries) > 0:
             one_json2csv(entries, outdir_name, first + "_" + second + "_" + filename + ".csv", column_list)
         else:
@@ -87,9 +90,17 @@ def all_entries_json2csv(indir_name, outdir_name, column_list):
 # %%
 
 def main():
-    column_list = ["noise", "sgv", "date", "dateString"]
-    all_entries_json2csv(dir_name, "/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_measurement/", column_list)
+    json_dir = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData_second/"
 
+    # gunzip_json_gz(json_dir)
+    file_types = kinds_of_files(json_dir, "*.json")
+    print(file_types)
+
+    column_list = ["noise", "sgv", "date", "dateString"]
+    all_entries_json2csv(json_dir, "/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_measurement/", column_list)
+
+    print(error_statistics)
+    print(key_error_statistics)
 
 # %%
 
