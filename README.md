@@ -1,10 +1,10 @@
 # date: 20.1.2021
-# author: Bernd Reinhold (bernd.reinhold@eddimed.eu)
+# author: Bernd Reinhold
 # README.md for analyzing the OPENonOH data
 
 
 ## 1. preprocessing step: preprocessing.ipynb
-preprocessing.ipynb takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects noise, sgv, date, dateString and writes them into csv-files." preprocessing.ipynb 
+preprocessing.ipynb takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files." preprocessing.ipynb 
 [master (Root-Commit) 61626d8] feat(preprocessing.ipynb): preprocessing.ipynb takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects noise, sgv, date, dateString and writes them into csv-files.
 
 Preprocessing.ipynb takes maybe 20 min to process all 161 entries_*.json.gz files. (A python script or C++ program might be more efficient, if this needs to be repeated more than once.) - Possible improvement: only a subset of all variables is stored in the csv-output files.
