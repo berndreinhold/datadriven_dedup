@@ -20,7 +20,7 @@ def load_one_json(dir_name, file_name):
 def one_json2csv(entries, dir_name, outfile_name, column_list):
     data = list()
     for i, entry in enumerate(entries):
-        if i % 10000 == 0: print(entry)
+        # if i % 10000 == 0: print(i, entry)
         try:
             pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
             data.append([entry[column] for column in column_list])
@@ -121,16 +121,20 @@ def all_entries_json2csv_OpenAPS_part1(indir_name, outdir_name, column_list):
     """
     except AndroidAPS Uploader
     """
-    for i, f in enumerate(glob.glob(os.path.join(f"{indir_name}","**", "*entries*.json"), recursive=True)):
+    for i, f in enumerate(sorted(glob.glob(os.path.join(f"{indir_name}","**", "*entries*.json"), recursive=True))):
         head, tail = os.path.split(f)
         print(i, head, tail)
+        filename, _ = os.path.splitext(tail)
+        if os.path.isfile(os.path.join(outdir_name, filename + ".csv")): 
+            print(f"{os.path.join(outdir_name, filename + '.csv')} exists already")
+            continue
         sub_dirs = head[len(indir_name):]
         dir_name_components = sub_dirs.split("/")
         # first = 82868075, second = 21672228 in home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/82868075/21672228/entries__to_2020-09-11
         first, second = dir_name_components[0], dir_name_components[1]  
         try: 
             if not second == "direct-sharing-31": raise ValueError(f"not second==direct-sharing-31: {head}, {tail}: {first}, {second}")
-            filename, _ = os.path.splitext(tail)
+    
             if first not in filename: raise Exception(f"first not in filename: {head}, {tail}: {first}, {second}")
             entries = load_one_json(head, tail)
             # print(outdir_name, os.path.join(first + "_" + second + "_" + filename + ".csv")
@@ -138,6 +142,7 @@ def all_entries_json2csv_OpenAPS_part1(indir_name, outdir_name, column_list):
                 one_json2csv(entries, outdir_name, filename + ".csv", column_list)
             else:
                 print(f"{tail} has 0 entries, therefore no output.")
+            del entries
 
         except ValueError as e:
             if e in error_statistics.keys():
