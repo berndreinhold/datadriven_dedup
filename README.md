@@ -66,9 +66,9 @@ classes: camelCase,
 ## Datasets
 
 ### OpenAPS Data Commons
-Compressed: 9.6 GB
-Uncompressed: ~120 GB (!) 
+- Compressed: 9.6 GB
+- Uncompressed: ~120 GB (!) 
 
 ## tested with
-python 3.8.10
-see requirements.txt
+- python 3.8.10
+- see requirements.txt
