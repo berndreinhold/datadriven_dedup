@@ -5,7 +5,14 @@ author: Bernd Reinhold
 ```
 # README.md for analyzing the OPENonOH and OpenAPS data sets
 
-## preparation: folder structure
+## process flow
+
+<img src="ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
+
+
+## 0. preparation
+
+### folder structure
 ![FolderStructure](FolderStructure.png)
 - **csv_per_measurements** contains files, where one entry corresponds to one measurement of the sensor/device, etc.
 - **csv_per_day** contains files, where one entry corresponds to the aggregate per day
@@ -13,6 +20,12 @@ author: Bernd Reinhold
 Please create this data structure manually.
 
 **ToDo: need to create a directory structure as part of the preprocessing**
+
+### dependencies
+```
+pip3 install -r requirements.txt
+```
+(requirements.txt was generated with `pipreqs .` + some manual adjustment)
 
 ## 1. preprocessing step: `python3 preprocessing.py`
 preprocessing.py takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files in the _csv_per_measurement_-subdirectory.
