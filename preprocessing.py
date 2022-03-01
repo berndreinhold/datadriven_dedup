@@ -115,18 +115,22 @@ def all_entries_json2csv(indir_name, outdir_name, column_list):
             one_json2csv(entries, outdir_name, first + "_" + second + "_" + filename + ".csv", column_list)
         else:
             print(f"{tail} has 0 entries, therefore no output.")
+        del entries
+
 
 # %%
 def all_entries_json2csv_OpenAPS_part1(indir_name, outdir_name, column_list):
     """
     except AndroidAPS Uploader
     """
-    for i, f in enumerate(sorted(glob.glob(os.path.join(f"{indir_name}","**", "*entries*.json"), recursive=True))):
+    file_list = sorted(glob.glob(os.path.join(f"{indir_name}","**", "*entries*.json"), recursive=True))
+    print(len(file_list))
+    for i, f in enumerate(file_list):
         head, tail = os.path.split(f)
-        print(i, head, tail)
+        if i%10==0: print(i, head, tail)
         filename, _ = os.path.splitext(tail)
         if os.path.isfile(os.path.join(outdir_name, filename + ".csv")): 
-            print(f"{os.path.join(outdir_name, filename + '.csv')} exists already")
+            # print(f"{os.path.join(outdir_name, filename + '.csv')} exists already")
             continue
         sub_dirs = head[len(indir_name):]
         dir_name_components = sub_dirs.split("/")
@@ -175,4 +179,6 @@ def main_OpenAPS():
 if __name__ == "__main__":
     #main_OPENonOH()
     main_OpenAPS()
+    print(key_error_statistics)
+    print(error_statistics)
 
