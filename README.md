@@ -7,13 +7,13 @@ author: Bernd Reinhold
 
 ## process flow
 
-<img src="ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
+<img src="doc/ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
 
 
 ## 0. preparation
 
 ### folder structure
-![FolderStructure](FolderStructure.png)
+![FolderStructure](doc/FolderStructure.png)
 - **csv_per_measurements** contains files, where one entry corresponds to one measurement of the sensor/device, etc.
 - **csv_per_day** contains files, where one entry corresponds to the aggregate per day
 
