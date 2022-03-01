@@ -71,35 +71,4 @@ Uncompressed: ~120 GB (!)
 
 ## tested with
 python 3.8.10
-pandas v1.9.1
-numpy v1.19.4
-
-see requirements.txt (ToDo)
-
-
-## known issues
-when running `duplicates.ipynb`:
-```
-(...)
-~/.local/lib/python3.8/site-packages/pandas/_libs/tslib.pyx in pandas._libs.tslib.array_to_datetime()
-~/.local/lib/python3.8/site-packages/pandas/_libs/tslib.pyx in pandas._libs.tslib.array_to_datetime()
-
-ValueError: time data Wed Oct 04 08:09:37 MD doesn't match format specified
-```
-somewhere in the input JSON-files the date-format changes from "2020-08-14" to "Wed Oct 04 ..."
-temporary fix: remove the lines in the `entries_OpenAPS.csv` file.
-
-Below is an excerpt of entries_OpenAPS.csv. The index (first column) indicates, that both date formats comes from the same JSON file:
-```
-454,2018-12-13,115.96527777777777,36.312218155588035,47.0,224.0,288,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-455,2018-12-14,111.2919708029197,24.6737423523363,50.0,201.0,274,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-456,2018-12-15,114.10104529616724,34.812086443359014,56.0,187.0,287,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-457,2018-12-16,113.54385964912281,36.64536468172049,52.0,227.0,285,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-458,2018-12-17,129.65686274509804,28.661261027826527,71.0,227.0,204,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-459,Wed Oct 04 08:09:37 MD,165.0,0.0,165.0,165.0,1,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-460,Wed Oct 04 08:14:37 MD,173.0,0.0,173.0,173.0,1,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-461,Wed Oct 04 08:19:37 MD,184.0,0.0,184.0,184.0,1,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-462,Wed Oct 04 08:49:37 MD,199.0,0.0,199.0,199.0,1,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-463,Wed Oct 04 08:54:37 MD,200.0,0.0,200.0,200.0,1,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-464,Wed Oct 04 09:54:37 MD,177.0,0.0,177.0,177.0,1,14092221_entries_2017-02-01_to_2018-12-18.csv,14092221,
-```
+see requirements.txt
