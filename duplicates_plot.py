@@ -4,6 +4,26 @@ import datetime
 import pandas as pd
 import matplotlib.dates as mdates
 import os
+import json
+
+class duplicates_plot():
+
+    def __init__(self, config_path : str, config_filename : str):
+        """
+        read a config file and populate file names and paths of three csv files:
+            - OpenAPS with key [user_id, date]
+            - OPENonOH with key [user_id, date]
+            - duplicates file containing the duplicates between the two data files with key [user_id_OpenAPS, user_id_OPENonOH, date]
+        """
+        pass
+
+    def merge_with_duplicates_dataset(self):
+        """
+        both
+        """
+
+        # open 
+        pass
 
 
 def main():
@@ -17,34 +37,34 @@ def main():
 
     df = [pd.read_csv(os.path.join(indir[i], infilename[i]), header=0, parse_dates=[1], index_col=0) for i in range(2)]
     df[0]["date"] = pd.to_datetime(df[0]["date"],format="%Y-%m-%d")
+    # add dataset variable to each dataset
+
+
+
+    # merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_OpenAPS, date] (outer join) 
+    # and the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_OPENonOH, date] (outer join)
+    # then merge these on user_id_OpenAPS, user_id_OPENonOH and user_id (outer join)
     out = df[0].merge(df[1], left_on="date", right_on="date", how="outer", suffixes=("_OpenAPS", "_OPENonOH"))
-
-
-
-    df_user_id_OpenAPS = out[["date", "user_id_OpenAPS"]].groupby("user_id_OpenAPS").agg("count")
-    columns = []
-    for col in df_user_id_OpenAPS.columns:
-        columns.append(f"{col[0]}_{col[1]}")
-    df_user_id_OpenAPS.columns = columns
-    df_user_id_OpenAPS.fillna(value=0, inplace=True)  #
-    df_user_id_OpenAPS.reset_index(inplace=True)
-    data = []
-    for i,user_id in enumerate(sorted(df_user_id_OpenAPS["user_id_OpenAPS"].values)):
-        data.append([i,user_id, "OpenAPS"])
-
-    df = pd.DataFrame(data=data, columns = ["index", "user_id", "dataset"])
-    print(df)
-    out_OpenAPS = out.merge(df, left_on="user_id_OpenAPS", right_on="user_id", how="inner")
-    out_OpenAPS = out_OpenAPS[["date", "index", "sgv_count_OpenAPS"]].groupby(["date", "index"]).agg("count")
-    columns = []
-    for col in out_OpenAPS.columns:
-        columns.append(f"{col[0]}_{col[1]}")
-    out_OpenAPS.columns = columns
-    out_OpenAPS.fillna(value=0, inplace=True)  #
-    out_OpenAPS.reset_index(inplace=True)
-    out_OpenAPS = out_OpenAPS[["date", "index"]]
-
-    #print(out_OpenAPS)
+    # give priority to the dataset variable of the duplicate dataset over the other two    
+    
+    out = out[["date", "user_id_OpenAPS", "user_id_OPENonOH"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
+    #out["dataset"] = 1 if out["user_id_OPENonOH"] is null
+    out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
+    out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates
+    out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
+    
+    # determine an auto-incremental index for user_id_OpenAPS, user_id_OPENonOH
+    df_user_id = out[["dataset", "user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"], as_index=False).agg("count")    
+    df_user_id = df_user_id.sort_values(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"])
+    df_user_id["id"] = range(len(df_user_id))
+    print(df_user_id)
+    
+    out_OpenAPS = out.merge(df_user_id, left_on=["user_id_OpenAPS", "user_id_OPENonOH"], right_on=["user_id_OpenAPS", "user_id_OPENonOH"], how="inner")
+    print(out_OpenAPS)
+    out_OpenAPS = out_OpenAPS.groupby(["date", "id", "dataset"], as_index=False).agg("count")
+    out_OpenAPS = out_OpenAPS[["date", "id", "dataset"]]
+    
+    print(out_OpenAPS)
 
 	# df3 = df2[["user_id_OpenAPS", "user_id_OPENonOH", "date", "diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count", "second_id_OPENonOH", "filename_OPENonOH", "filename_OpenAPS"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
 	#df3 = df3[[]]
@@ -73,6 +93,7 @@ def main():
     plt.grid()
     plt.title("OpenAPS")
     plt.xlabel("date")
+    plt.ylabel("person (index)")
     #plt.yticks([1,2], labels=['target', 'hunter'])
     #plt.gca().set_ylim(0.0,2.5)
     plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
