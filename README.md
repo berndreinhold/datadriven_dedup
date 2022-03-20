@@ -29,8 +29,7 @@ pip3 install -r requirements.txt
 
 ## 1. preprocessing step: `python3 preprocessing.py`
 preprocessing.py takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files in the _csv_per_measurement_-subdirectory.
-
-Preprocessing.ipynb took rather long (maybe 20 min) to process all 161 entries_*.json.gz files. Therefore the switch to a python script 
+ 
 _Possible improvement: only a subset of all variables is stored in the csv-output files, store all variables._
 
 One entry in the csv output file is one measurement. One file corresponds to one json file. 
