@@ -75,6 +75,7 @@ class duplicates_plot():
         # then merge these on user_id_OpenAPS, user_id_OPENonOH and date (outer join)
         self.df["merged_all"] = self.df[f"OpenAPS_duplicates"].merge(self.df["OPENonOH_duplicates"], left_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], 
             right_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
+        print(self.df["merged_all"])
 
 
 
@@ -90,24 +91,49 @@ class duplicates_plot():
         out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates, partially overwrites 1 and 3
         
         out = out.sort_values(by=["dataset", "user_id_OpenAPS", "user_id_OPENonOH", "date"])
-
-        # determine an auto-incremental index "id" for user_id_OpenAPS, user_id_OPENonOH
-        df_user_id = out[["user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["user_id_OpenAPS", "user_id_OPENonOH"], as_index=False).agg("count")    
-        df_user_id = df_user_id.sort_values(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"])
+        
+        # determine an auto-incremental index "id" for plotting instead of the user_id_OpenAPS, user_id_OPENonOH
+        df_user_id = out[["user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["user_id_OpenAPS", "user_id_OPENonOH"], as_index=False, dropna=False).agg("count")    
+        df_user_id = df_user_id.sort_values(["user_id_OpenAPS", "user_id_OPENonOH"])
         df_user_id["id"] = range(len(df_user_id))
-        print(df_user_id)
+
 
         # merge the df_user_id with the out dataset
-        self.df["merged_all"] = out.merge(df_user_id, left_on=["user_id_OpenAPS", "user_id_OPENonOH"], right_on=["user_id_OpenAPS", "user_id_OPENonOH"], how="inner")
-        print(self.df["merged_all"])
-        self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False).agg("count")
+        self.df["merged_all"] = out.merge(df_user_id, left_on=["user_id_OpenAPS", "user_id_OPENonOH"], right_on=["user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
+        #print(self.df["merged_all"])
+        self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False, dropna=False).agg("count")
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
     
-        print(self.df["merged_all"])
-
 
     def plot(self):
-        pass        
+        x = self.df["merged_all"]["date"].values
+        y = self.df["merged_all"]["id"].values
+        colors = {1: 'green', 2: 'yellow', 3: 'red'}
+        c = [colors[ds] for ds in self.df["merged_all"]["dataset"].values]
+        
+
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=365))
+        plt.scatter(x,y, marker='s', s=1, c=c)
+        plt.gcf().autofmt_xdate()
+        
+        
+        plt.grid()
+        plt.title(self.json_output["title"])
+        plt.xlabel("date")
+        plt.ylabel("person (index)")
+        #plt.yticks([1,2], labels=['target', 'hunter'])
+        #plt.gca().set_ylim(0.0,2.5)
+        plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
+                                            horizontalalignment = 'right'
+                                            )
+        
+        plt.tight_layout()
+        #plt.show()
+
+        #fig.show()
+        print("saved figure: ", os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]))
+        plt.savefig(os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]))
 
 
 
@@ -121,7 +147,7 @@ def main():
     dp.merge_with_duplicates_dataset()
     dp.merge_all()
     dp.fine_tuning()
-    #dp.plot()
+    dp.plot()
 
 def test():
     dataset = ["OpenAPS", "OPENonOH"]
@@ -156,27 +182,6 @@ def merge():
     #plt.gca().xaxis.set_major_formatter(    matplotlib.ticker.FuncFormatter( lambda pos, _: time.strftime( "%d-%m-%Y %H:%M:%S", time.localtime( pos ) ) ) )
     #xfmt = mdates.DateFormatter('%y-%m-%d')
     #ax.xaxis.set_major_formatter(xfmt)
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=365))
-    plt.scatter(x,y, marker='s', s=1)
-    plt.gcf().autofmt_xdate()
-    
-    
-    plt.grid()
-    plt.title("OpenAPS")
-    plt.xlabel("date")
-    plt.ylabel("person (index)")
-    #plt.yticks([1,2], labels=['target', 'hunter'])
-    #plt.gca().set_ylim(0.0,2.5)
-    plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
-                                        horizontalalignment = 'right'
-                                        )
-    
-    plt.tight_layout()
-    #plt.show()
-
-    #fig.show()
-    plt.savefig("Duplicates.png")
 
 
 
