@@ -65,17 +65,24 @@ class duplicates_plot():
             right_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
 
 
+
     def fine_tuning(self):
-        #out = out[["date", "user_id_OpenAPS", "user_id_OPENonOH"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
-        #out["dataset"] = 1 if out["user_id_OPENonOH"] is null
-        #out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
-        #out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates
-        #out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
-        pass
+        """
+        preparation of the dataframe for plotting: 
+        1. introduce the "dataset" variable for sorting prior to plotting
+        2. calculate an arbitrary auto-incremental index to plot instead of user_id_OpenAPS and user_id_OPENonOH
+        """
+        out = self.df["merged_all"]  # just an alias for easier readibility below
+        out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
+        out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates
+        out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
+        
+        out = out.sort_values(by=["dataset", "user_id_OpenAPS", "user_id_OPENonOH", "date"])
+
+
 
     def plot(self):
         pass        
-
 
 
 
@@ -87,7 +94,7 @@ def main():
     #dp.df["duplicates"].info()
 
     dp.merge_with_duplicates_dataset()
-
+    dp.merge()
 
 def test():
     dataset = ["OpenAPS", "OPENonOH"]
