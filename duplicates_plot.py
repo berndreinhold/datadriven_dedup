@@ -25,46 +25,64 @@ class duplicates_plot():
         for ds in self.dataset:
             self.df[ds] = pd.read_csv(os.path.join(*self.json_input[ds]), header=0, parse_dates=[1], index_col=0)
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
+            # fix the data types that were loaded as the unspecific "object"
             for col in self.df[ds].columns:
                 if "filename" in col:
-                    print (col)
-                    self.df[ds][col] = self.df[ds][col].astype(str)
+                    self.df[ds][col] = self.df[ds][col].astype('string')
 
+        # fix the data types that were loaded as the unspecific "object"
         self.df["duplicates"]['user_id_OpenAPS'] = self.df["duplicates"]['user_id_OpenAPS'].astype(int)
 
-        for ds in self.dataset:
-            self.df[ds].info()
 
     def merge_with_duplicates_dataset(self):
         """
-        merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_OpenAPS, date] (outer join) 
-        and the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_OPENonOH, date] (outer join)
+        input: the three data frames "OpenAPS", "OPENonOH", "duplicates"
+
+        output and algo: 
+        df["OpenAPS_duplicates"]: merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_OpenAPS, date] (outer join) 
+        df["OPENonOH_duplicates"]: merge the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_OPENonOH, date] (outer join)
         
-        add merged data frames to self.df-dictionary of data frames
+        add merged data frames OpenAPS_duplicates and OPENonOH_duplicates to self.df-dictionary of data frames
         """
-        self.dataset.append("merge_OpenAPS")
-        self.dataset.append("merge_OPENonOH")
-
-        # then merge these on user_id_OpenAPS, user_id_OPENonOH and user_id (outer join)
         for ds in self.dataset[:2]:
-            self.df[f"merge_{ds}"] = self.df[ds].merge(self.df["duplicates"], left_on=["date", "user_id"], right_on=["date", f"user_id_{ds}"], how="outer", suffixes=(f"_{ds}", ""))
-            # give priority to the dataset variable of the duplicate dataset over the other two    
-            #print(self.df[f"merge_{ds}"])
+            self.df[f"{ds}_duplicates"] = self.df[ds].merge(self.df["duplicates"], left_on=["date", "user_id"], right_on=["date", f"user_id_{ds}"], 
+                how="outer", suffixes=(f"_{ds}", None))
 
+        # prepare the user_id variables for the merge of OpenAPS_duplicates and OPENonOH_duplicates
+        self.df[f"OpenAPS_duplicates"] = self.df[f"OpenAPS_duplicates"]["date", "user_id", "user_id_OPENonOH"]
+        self.df[f"OpenAPS_duplicates"]["user_id_OpenAPS"] = self.df[f"OpenAPS_duplicates"]["user_id"]
+        self.df[f"OPENonOH_duplicates"] = self.df[f"OPENonOH_duplicates"]["date", "user_id", "user_id_OpenAPS"]  
+        self.df[f"OPENonOH_duplicates"]["user_id_OPENonOH"] = self.df[f"OPENonOH_duplicates"]["user_id"]
+
+        # focus just on the date, user_id_* variables
+        self.df[f"OpenAPS_duplicates"] = self.df[f"OpenAPS_duplicates"]["date", "user_id_OpenAPS", "user_id_OPENonOH"]
+        self.df[f"OPENonOH_duplicates"] = self.df[f"OPENonOH_duplicates"]["date", "user_id_OpenAPS", "user_id_OPENonOH"]  
+        
+    def merge(self):
+        
+        # then merge these on user_id_OpenAPS, user_id_OPENonOH and date (outer join)
+        self.df["merged_all"] = self.df[f"OpenAPS_duplicates"].merge(self.df["OPENonOH_duplicates"], left_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], 
+            right_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
+
+
+    def fine_tuning(self):
         #out = out[["date", "user_id_OpenAPS", "user_id_OPENonOH"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
         #out["dataset"] = 1 if out["user_id_OPENonOH"] is null
         #out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
         #out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates
         #out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
-        
+        pass
+
+    def plot(self):
+        pass        
+
 
 
 
 def main():
 
     dp = duplicates_plot("IO.json", ".")
-    for ds in dp.dataset:
-        print(dp.df[ds])
+    #for ds in dp.dataset:
         #dp.df[ds].info()
     #dp.df["duplicates"].info()
 
