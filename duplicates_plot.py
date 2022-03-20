@@ -20,7 +20,7 @@ class duplicates_plot():
         self.json_input = IO_json["duplicates_plot"]["input"]
         self.json_output = IO_json["duplicates_plot"]["output"]
 
-        self.dataset = ["OpenAPS", "OPENonOH", "duplicates"]
+        self.dataset = ["OpenAPS", "duplicates", "OPENonOH"]  # the sequence is ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
         self.df = {}
         for ds in self.dataset:
             self.df[ds] = pd.read_csv(os.path.join(*self.json_input[ds]), header=0, parse_dates=[1], index_col=0)
@@ -44,7 +44,7 @@ class duplicates_plot():
         
         add merged data frames OpenAPS_duplicates and OPENonOH_duplicates to self.df-dictionary of data frames
         """
-        for ds in self.dataset[:2]:
+        for ds in ["OpenAPS", "OPENonOH"]:
             self.df[f"{ds}_duplicates"] = self.df[ds].merge(self.df["duplicates"], left_on=["date", "user_id"], right_on=["date", f"user_id_{ds}"], 
                 how="outer", suffixes=(f"_{ds}", None))
 
@@ -75,7 +75,6 @@ class duplicates_plot():
         # then merge these on user_id_OpenAPS, user_id_OPENonOH and date (outer join)
         self.df["merged_all"] = self.df[f"OpenAPS_duplicates"].merge(self.df["OPENonOH_duplicates"], left_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], 
             right_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
-        print(self.df["merged_all"])
 
 
 
@@ -86,17 +85,19 @@ class duplicates_plot():
         2. calculate an arbitrary auto-incremental index to plot instead of user_id_OpenAPS and user_id_OPENonOH
         """
         out = self.df["merged_all"]  # just an alias for easier readibility below
+
         out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
         out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
         out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates, partially overwrites 1 and 3
-        
+        out["dataset"] = out["dataset"].astype(int)
+
         out = out.sort_values(by=["dataset", "user_id_OpenAPS", "user_id_OPENonOH", "date"])
         
         # determine an auto-incremental index "id" for plotting instead of the user_id_OpenAPS, user_id_OPENonOH
-        df_user_id = out[["user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["user_id_OpenAPS", "user_id_OPENonOH"], as_index=False, dropna=False).agg("count")    
-        df_user_id = df_user_id.sort_values(["user_id_OpenAPS", "user_id_OPENonOH"])
+        df_user_id = out[["dataset", "user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"], as_index=False, dropna=False).agg("count")    
+        df_user_id = df_user_id.sort_values(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"])
         df_user_id["id"] = range(len(df_user_id))
-
+        df_user_id = df_user_id[["id", "user_id_OpenAPS", "user_id_OPENonOH"]]  # drop the dataset variable, which was only necessary for proper sorting of values prior to calculating the "id"
 
         # merge the df_user_id with the out dataset
         self.df["merged_all"] = out.merge(df_user_id, left_on=["user_id_OpenAPS", "user_id_OPENonOH"], right_on=["user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
@@ -104,85 +105,54 @@ class duplicates_plot():
         self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False, dropna=False).agg("count")
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
     
-
     def plot(self):
-        x = self.df["merged_all"]["date"].values
-        y = self.df["merged_all"]["id"].values
-        colors = {1: 'green', 2: 'yellow', 3: 'red'}
-        c = [colors[ds] for ds in self.df["merged_all"]["dataset"].values]
-        
 
+        fig, ax = plt.subplots()
+
+        for i in range(1, len(self.dataset)+1):
+            self.plot_one_dataset(ax, i)
+
+        # x-axis date formatting
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=365))
-        plt.scatter(x,y, marker='s', s=1, c=c)
         plt.gcf().autofmt_xdate()
-        
-        
         plt.grid()
+
         plt.title(self.json_output["title"])
         plt.xlabel("date")
         plt.ylabel("person (index)")
-        #plt.yticks([1,2], labels=['target', 'hunter'])
-        #plt.gca().set_ylim(0.0,2.5)
         plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
                                             horizontalalignment = 'right'
                                             )
-        
+        plt.legend(loc="upper left", markerscale=4)
         plt.tight_layout()
-        #plt.show()
 
-        #fig.show()
         print("saved figure: ", os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]))
         plt.savefig(os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]))
 
 
+    def plot_one_dataset(self, ax, dataset):
+        # the data
+        df = self.df["merged_all"] 
+        print(df)
+        x = df.loc[df["dataset"]==dataset, "date"].values
+        y = df.loc[df["dataset"]==dataset, "id"].values
+        #print(len(x),len(y))
+        colors = self.json_output["colors"]
+        #c = [colors[f"{ds}"] for ds in df["dataset"].astype(int).values]
+        
+        ax.scatter(x,y, marker='s', s=1, c=colors[f"{dataset}"], label=f"{self.dataset[dataset-1]} ({len(x)} d)")
+        
+        
 
 def main():
 
     dp = duplicates_plot("IO.json", ".")
-    #for ds in dp.dataset:
-        #dp.df[ds].info()
-    #dp.df["duplicates"].info()
 
     dp.merge_with_duplicates_dataset()
     dp.merge_all()
     dp.fine_tuning()
     dp.plot()
-
-def test():
-    dataset = ["OpenAPS", "OPENonOH"]
-    outdir = "/home/reinhold/Daten/OPEN/"
-    #outfilename = f"duplicates_{dataset[0]}_{dataset[1]}.csv"
-
-    indir = [f"{outdir}/{d}_Data/csv_per_day/" for d in dataset]
-    infilename = [f"entries_{d}.csv" for d in dataset]
-
-    df = [pd.read_csv(os.path.join(indir[i], infilename[i]), header=0, parse_dates=[1], index_col=0) for i in range(2)]
-    # add dataset variable to each dataset
-
-
-def merge():
-    
-
-	# df3 = df2[["user_id_OpenAPS", "user_id_OPENonOH", "date", "diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count", "second_id_OPENonOH", "filename_OPENonOH", "filename_OpenAPS"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
-	#df3 = df3[[]]
-
-	# group by statement has to return exactly one line, otherwise the selection criteria on diff_sgv_*-variables need to be tightened.
-
-
-    # Todo: try group by without agg(), what happens then?
-
-    x = out_OpenAPS["date"].values
-    y = out_OpenAPS["index"].values
-
-    #(fig, ax) = plt.subplots(1, 1)
-  
-    #ax.plot([x, y], lw=3)
-    
-    #plt.gca().xaxis.set_major_formatter(    matplotlib.ticker.FuncFormatter( lambda pos, _: time.strftime( "%d-%m-%Y %H:%M:%S", time.localtime( pos ) ) ) )
-    #xfmt = mdates.DateFormatter('%y-%m-%d')
-    #ax.xaxis.set_major_formatter(xfmt)
-
 
 
 if __name__ == "__main__":
