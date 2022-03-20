@@ -8,26 +8,70 @@ import json
 
 class duplicates_plot():
 
-    def __init__(self, config_path : str, config_filename : str):
+    def __init__(self, config_filename : str, config_path : str):
         """
         read a config file and populate file names and paths of three csv files:
             - OpenAPS with key [user_id, date]
             - OPENonOH with key [user_id, date]
             - duplicates file containing the duplicates between the two data files with key [user_id_OpenAPS, user_id_OPENonOH, date]
         """
-        pass
+        f = open(os.path.join(config_path, config_filename))
+        IO_json = json.load(f)
+        self.json_input = IO_json["duplicates_plot"]["input"]
+        self.json_output = IO_json["duplicates_plot"]["output"]
+
+        self.dataset = ["OpenAPS", "OPENonOH", "duplicates"]
+        self.df = {}
+        for ds in self.dataset:
+            self.df[ds] = pd.read_csv(os.path.join(*self.json_input[ds]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
+            for col in self.df[ds].columns:
+                if "filename" in col:
+                    print (col)
+                    self.df[ds][col] = self.df[ds][col].astype(str)
+
+        self.df["duplicates"]['user_id_OpenAPS'] = self.df["duplicates"]['user_id_OpenAPS'].astype(int)
+
+        for ds in self.dataset:
+            self.df[ds].info()
 
     def merge_with_duplicates_dataset(self):
         """
-        both
+        merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_OpenAPS, date] (outer join) 
+        and the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_OPENonOH, date] (outer join)
+        
+        add merged data frames to self.df-dictionary of data frames
         """
+        self.dataset.append("merge_OpenAPS")
+        self.dataset.append("merge_OPENonOH")
 
-        # open 
-        pass
+        # then merge these on user_id_OpenAPS, user_id_OPENonOH and user_id (outer join)
+        for ds in self.dataset[:2]:
+            self.df[f"merge_{ds}"] = self.df[ds].merge(self.df["duplicates"], left_on=["date", "user_id"], right_on=["date", f"user_id_{ds}"], how="outer", suffixes=(f"_{ds}", ""))
+            # give priority to the dataset variable of the duplicate dataset over the other two    
+            #print(self.df[f"merge_{ds}"])
+
+        #out = out[["date", "user_id_OpenAPS", "user_id_OPENonOH"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
+        #out["dataset"] = 1 if out["user_id_OPENonOH"] is null
+        #out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
+        #out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates
+        #out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
+        
+
 
 
 def main():
 
+    dp = duplicates_plot("IO.json", ".")
+    for ds in dp.dataset:
+        print(dp.df[ds])
+        #dp.df[ds].info()
+    #dp.df["duplicates"].info()
+
+    dp.merge_with_duplicates_dataset()
+
+
+def test():
     dataset = ["OpenAPS", "OPENonOH"]
     outdir = "/home/reinhold/Daten/OPEN/"
     #outfilename = f"duplicates_{dataset[0]}_{dataset[1]}.csv"
@@ -36,29 +80,17 @@ def main():
     infilename = [f"entries_{d}.csv" for d in dataset]
 
     df = [pd.read_csv(os.path.join(indir[i], infilename[i]), header=0, parse_dates=[1], index_col=0) for i in range(2)]
-    df[0]["date"] = pd.to_datetime(df[0]["date"],format="%Y-%m-%d")
     # add dataset variable to each dataset
 
 
-
-    # merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_OpenAPS, date] (outer join) 
-    # and the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_OPENonOH, date] (outer join)
-    # then merge these on user_id_OpenAPS, user_id_OPENonOH and user_id (outer join)
-    out = df[0].merge(df[1], left_on="date", right_on="date", how="outer", suffixes=("_OpenAPS", "_OPENonOH"))
-    # give priority to the dataset variable of the duplicate dataset over the other two    
-    
-    out = out[["date", "user_id_OpenAPS", "user_id_OPENonOH"]].sort_values(by=["user_id_OpenAPS", "user_id_OPENonOH", "date"])
-    #out["dataset"] = 1 if out["user_id_OPENonOH"] is null
-    out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
-    out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates
-    out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
+def merge():
     
     # determine an auto-incremental index for user_id_OpenAPS, user_id_OPENonOH
     df_user_id = out[["dataset", "user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"], as_index=False).agg("count")    
     df_user_id = df_user_id.sort_values(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"])
     df_user_id["id"] = range(len(df_user_id))
     print(df_user_id)
-    
+
     out_OpenAPS = out.merge(df_user_id, left_on=["user_id_OpenAPS", "user_id_OPENonOH"], right_on=["user_id_OpenAPS", "user_id_OPENonOH"], how="inner")
     print(out_OpenAPS)
     out_OpenAPS = out_OpenAPS.groupby(["date", "id", "dataset"], as_index=False).agg("count")
