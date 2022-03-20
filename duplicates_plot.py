@@ -5,6 +5,15 @@ import pandas as pd
 import matplotlib.dates as mdates
 import os
 import json
+import fire
+
+"""
+call as: python3 duplicates_plot.py [--config_filename=IO.json] [--config_path="."]
+
+takes two dataset files and a duplicates file, which has been produced by other functions (see e.g. )
+"""
+
+
 
 class duplicates_plot():
 
@@ -106,10 +115,15 @@ class duplicates_plot():
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
     
     def plot(self):
-
+        """
+        plot the three data frames: the first, the duplicates and the second dataset.
+        store it as output png, where the path and png name is from the config file
+        """
+        plt.figure(figsize=(9.6, 7.2))
         fig, ax = plt.subplots()
 
-        for i in range(1, len(self.dataset)+1):
+        # affects the sequence in the legend
+        for i in range(len(self.dataset), 0, -1):
             self.plot_one_dataset(ax, i)
 
         # x-axis date formatting
@@ -124,20 +138,19 @@ class duplicates_plot():
         plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
                                             horizontalalignment = 'right'
                                             )
-        plt.legend(loc="upper left", markerscale=4)
+        plt.legend(loc="upper left", markerscale=4, framealpha=0.5)
         plt.tight_layout()
 
         print("saved figure: ", os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]))
-        plt.savefig(os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]))
+        plt.savefig(os.path.join(self.json_output["img_path"][0], self.json_output["img_path"][1]), )
 
 
     def plot_one_dataset(self, ax, dataset):
         # the data
         df = self.df["merged_all"] 
-        print(df)
         x = df.loc[df["dataset"]==dataset, "date"].values
         y = df.loc[df["dataset"]==dataset, "id"].values
-        #print(len(x),len(y))
+
         colors = self.json_output["colors"]
         #c = [colors[f"{ds}"] for ds in df["dataset"].astype(int).values]
         
@@ -145,9 +158,9 @@ class duplicates_plot():
         
         
 
-def main():
+def main(config_filename : str = "IO.json", config_path : str = "."):
 
-    dp = duplicates_plot("IO.json", ".")
+    dp = duplicates_plot(config_filename, config_path)
 
     dp.merge_with_duplicates_dataset()
     dp.merge_all()
@@ -156,4 +169,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)
