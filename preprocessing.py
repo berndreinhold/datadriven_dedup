@@ -18,6 +18,15 @@ def load_one_json(dir_name, file_name):
 
 # %%
 def one_json2csv(entries, dir_name, outfile_name, column_list):
+    """
+    input: this function reads a json-file
+    algo:
+    - flattens the structure
+    - filters a subset of columns
+    output: produces an output csv file with one entry being one line in the output file
+
+    """
+
     data = list()
     for i, entry in enumerate(entries):
         # if i % 10000 == 0: print(i, entry)
