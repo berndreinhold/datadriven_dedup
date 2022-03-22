@@ -15,18 +15,18 @@ takes a directory containing files with a file_ending specified in the config fi
 
 class duplicates_preprocessing():
 
-    def __init__(self, config_filename : str, config_path : str):
+    def __init__(self, dataset : str, config_filename : str, config_path : str):
         """
         read a config file and populate input and output file names and paths:
             - output a csv file with key [user_id, date] and one entry per measurement
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
-        self.json_input = IO_json["duplicates_preprocessing"]["input"]
-        self.json_output = IO_json["duplicates_preprocessing"]["output"]
+        self.json_input = IO_json["duplicates_preprocessing"][dataset]["input"]
+        self.json_output = IO_json["duplicates_preprocessing"][dataset]["output"]
 
         self.in_dir_name = self.json_input["dir_name"]
-        self.column_list = self.json_input["columns"]
+        self.columns = self.json_input["columns"]
         self.file_ending = self.json_input["file_ending"]
 
         self.out_dir_name = self.json_output["dir_name"]
@@ -34,13 +34,18 @@ class duplicates_preprocessing():
         self.error_statistics = {}
         self.key_error_statistics = {}
 
+    def __del__(self):
+        print(self.key_error_statistics)
+        print(self.error_statistics)
 
-    def load_one_json(self, file_name : str, dir_name : str = ""):
+
+
+    def load_one_json(self,  dir_name : str, file_name : str):
         with open(os.path.join(dir_name, file_name)) as f:
             return json.load(f)
 
 
-    def one_json2csv(self, entries, dir_name, outfile_name):
+    def one_json2csv(self, entries, outfile_name):
         """
         input: this function reads a json-file
         algo:
@@ -55,7 +60,7 @@ class duplicates_preprocessing():
             # if i % 10000 == 0: print(i, entry)
             try:
                 pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
-                data.append([entry[column] for column in self.column_list])
+                data.append([entry[column] for column in self.columns])
             except KeyError as e:
                 # print(f"{i}, key_error: {e}")
                 if e in self.key_error_statistics.keys():
@@ -68,9 +73,27 @@ class duplicates_preprocessing():
                 else:
                     self.error_statistics[e] = 1            
                 
-        df = pd.DataFrame(data=data, columns=self.column_list)
-        df.to_csv(os.path.join(dir_name, outfile_name))
+        df = pd.DataFrame(data=data, columns=self.columns)
+        df.to_csv(os.path.join(self.out_dir_name, outfile_name))
         #print(my_dict[0])
+
+
+    def all_entries_json2csv(self):
+        for i, f in enumerate(glob.glob(os.path.join(f"{self.in_dir_name}","**", f"entries*.{self.file_ending}"), recursive=True)):
+            head, tail = os.path.split(f)
+            sub_dirs = head[len(self.in_dir_name):]
+            dir_name_components = sub_dirs.split("/")
+            # first = 82868075, second = 21672228 in home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/82868075/21672228/entries__to_2020-09-11
+            first, second = dir_name_components[0], dir_name_components[1]  
+            filename, _ = os.path.splitext(tail)
+            entries = self.load_one_json(head, tail)
+            # print(outdir_name, os.path.join(first + "_" + second + "_" + filename + ".csv")
+            if len(entries) > 0:
+                self.one_json2csv(entries, first + "_" + second + "_" + filename + ".csv")
+            else:
+                print(f"{tail} has 0 entries, therefore no output.")
+            del entries
+
 
     def extract_json_gz(self, dir_name):
         # %%
@@ -94,7 +117,7 @@ class duplicates_preprocessing():
         - output: {'file_info': 4912, 'devicestatus': 161, 'entries': 161, 'treatments': 161, 'profile': 162}
         """
         file_types = {}
-        for i, f in enumerate(glob.glob(os.path.join(f"{dir_name}","**", self.file_ending), recursive=True)):
+        for i, f in enumerate(glob.glob(os.path.join(f"{dir_name}","**", f"*.{self.file_ending}"), recursive=True)):
             head, tail = os.path.split(f)
             filename, _ = os.path.splitext(tail)
             filename_components = filename.split("_")
@@ -109,32 +132,11 @@ class duplicates_preprocessing():
         return file_types
 
 
-
-    # %%
-    def all_entries_json2csv(self, indir_name, outdir_name, column_list):
-        for i, f in enumerate(glob.glob(os.path.join(f"{indir_name}","**", "entries*.json"), recursive=True)):
-            head, tail = os.path.split(f)
-            sub_dirs = head[len(indir_name):]
-            dir_name_components = sub_dirs.split("/")
-            # first = 82868075, second = 21672228 in home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/82868075/21672228/entries__to_2020-09-11
-            first, second = dir_name_components[0], dir_name_components[1]  
-            filename, _ = os.path.splitext(tail)
-            entries = self.load_one_json(head, tail)
-            # print(outdir_name, os.path.join(first + "_" + second + "_" + filename + ".csv")
-            if len(entries) > 0:
-                self.one_json2csv(entries, outdir_name, first + "_" + second + "_" + filename + ".csv", column_list)
-            else:
-                print(f"{tail} has 0 entries, therefore no output.")
-            del entries
-
-
     def main(self):
         # %%
-        file_types = self.kinds_of_files(self.in_dir_name, f"*.{self.file_ending}")
+        file_types = self.kinds_of_files(self.in_dir_name)
         print(file_types)
-
-        column_list = ["noise", "sgv", "date", "dateString"]
-        self.all_entries_json2csv(self.in_dir_name, "", self.column_list)
+        self.all_entries_json2csv()
 
 
 # %%
@@ -204,18 +206,12 @@ def main_OpenAPS():
     print(file_types1)
     print(file_types2)
 
+    all_entries_json2csv_OpenAPS_part1(dir_name, "/home/reinhold/Daten/OPEN/OpenAPS_Data/csv_per_measurement/")
 
-    all_entries_json2csv_OpenAPS_part1(dir_name, "/home/reinhold/Daten/OPEN/OpenAPS_Data/csv_per_measurement/", column_list)
 
 def main(dataset : str, config_filename : str = "IO.json", config_path : str = "."):
     dpp = duplicates_preprocessing(dataset, config_filename, config_path)
-
+    dpp.main()
 
 if __name__ == "__main__":
     fire.Fire(main)
-
-    #main_OPENonOH()
-    main_OpenAPS()
-    print(key_error_statistics)
-    print(error_statistics)
-
