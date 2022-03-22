@@ -4,65 +4,77 @@ import os
 import pandas as pd
 import glob
 
-error_statistics = {}
-key_error_statistics = {}
 
-def load_one_json(dir_name, file_name):
-    with open(os.path.join(dir_name, file_name)) as f:
-        #for line in f.readline():
-        #    print(line)
-        # entries = json.load(f)
-        return json.load(f)
-        #print(entries)
+
+class duplicates_preprocessing():
+
+    def __init__(self, config_filename : str, config_path : str):
+        """
+        read a config file and populate input and output file names and paths:
+            - output a csv file with key [user_id, date] and one entry per measurement
+        """
+        f = open(os.path.join(config_path, config_filename))
+        IO_json = json.load(f)
+        self.json_input = IO_json["duplicates_preprocessing"]["input"]
+        self.json_output = IO_json["duplicates_preprocessing"]["output"]
+
+        self.error_statistics = {}
+        self.key_error_statistics = {}
+
+        self.column_list = self.json_input["columns"]
+
+    def load_one_json(self, file_name : str, dir_name : str = ""):
+        with open(os.path.join(dir_name, file_name)) as f:
+            return json.load(f)
 
 
 # %%
-def one_json2csv(entries, dir_name, outfile_name, column_list):
-    """
-    input: this function reads a json-file
-    algo:
-    - flattens the structure
-    - filters a subset of columns
-    output: produces an output csv file with one entry being one line in the output file
+    def one_json2csv(self, entries, dir_name, outfile_name):
+        """
+        input: this function reads a json-file
+        algo:
+        - flattens the structure
+        - filters a subset of columns
+        output: produces an output csv file with one entry being one line in the output file
 
-    """
+        """
 
-    data = list()
-    for i, entry in enumerate(entries):
-        # if i % 10000 == 0: print(i, entry)
-        try:
-            pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
-            data.append([entry[column] for column in column_list])
-        except KeyError as e:
-            # print(f"{i}, key_error: {e}")
-            if e in key_error_statistics.keys():
-                key_error_statistics[e] += 1
-            else:
-                key_error_statistics[e] = 1            
-        except Exception as e:
-            if e in error_statistics.keys():
-                error_statistics[e] += 1
-            else:
-                error_statistics[e] = 1            
+        data = list()
+        for i, entry in enumerate(entries):
+            # if i % 10000 == 0: print(i, entry)
+            try:
+                pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
+                data.append([entry[column] for column in self.column_list])
+            except KeyError as e:
+                # print(f"{i}, key_error: {e}")
+                if e in self.key_error_statistics.keys():
+                    self.key_error_statistics[e] += 1
+                else:
+                    self.key_error_statistics[e] = 1            
+            except Exception as e:
+                if e in self.error_statistics.keys():
+                    self.error_statistics[e] += 1
+                else:
+                    self.error_statistics[e] = 1            
+                
+        df = pd.DataFrame(data=data, columns=self.column_list)
+        df.to_csv(os.path.join(dir_name, outfile_name))
+        #print(my_dict[0])
+
+    def extract_json_gz(self, dir_name):
+        # %%
+        # gunzip json.gz to json files
+        # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/00749582/69754"
+        # file_name = "entries__to_2018-06-07.json"
+        # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/Open Humans Data/00749582/69756"
+        # file_name = "profile__to_2018-06-07.json"
             
-    df = pd.DataFrame(data=data, columns=column_list)
-    df.to_csv(os.path.join(dir_name, outfile_name))
-    #print(my_dict[0])
-
-def extract_json_gz(dir_name):
-    # %%
-    # gunzip json.gz to json files
-    # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/00749582/69754"
-    # file_name = "entries__to_2018-06-07.json"
-    # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/Open Humans Data/00749582/69756"
-    # file_name = "profile__to_2018-06-07.json"
-        
-    # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/"
-    search_string = os.path.join(f"{dir_name}","**","*.json.gz")
-    print(search_string)
-    for i, f in enumerate(glob.glob(search_string, recursive=True)):
-        os.system(f"gunzip {f}")
-        if i % 100 == 0: print(i, f)
+        # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/"
+        search_string = os.path.join(f"{dir_name}","**","*.json.gz")
+        print(search_string)
+        for i, f in enumerate(sorted(glob.glob(search_string, recursive=True))):
+            os.system(f"gunzip {f}")
+            if i % 100 == 0: print(i, f)
 
 
 
@@ -180,7 +192,6 @@ def main_OpenAPS():
     print(file_types1)
     print(file_types2)
 
-    column_list = ["noise", "sgv", "date", "dateString"]
 
     all_entries_json2csv_OpenAPS_part1(dir_name, "/home/reinhold/Daten/OPEN/OpenAPS_Data/csv_per_measurement/", column_list)
 
