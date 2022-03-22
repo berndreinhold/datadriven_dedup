@@ -3,7 +3,14 @@ import json
 import os
 import pandas as pd
 import glob
+import fire
 
+"""
+call as: python3 duplicates_preprocessing.py --dataset=[...] [--config_filename=IO.json] [--config_path="."]
+
+takes a directory containing files with a file_ending specified in the config file (typically: "json") and transforms them into csv files.
+
+"""
 
 
 class duplicates_preprocessing():
@@ -18,8 +25,11 @@ class duplicates_preprocessing():
         self.json_input = IO_json["duplicates_preprocessing"]["input"]
         self.json_output = IO_json["duplicates_preprocessing"]["output"]
 
+        self.in_dir_name = self.json_input["dir_name"]
         self.column_list = self.json_input["columns"]
         self.file_ending = self.json_input["file_ending"]
+
+        self.out_dir_name = self.json_output["dir_name"]
 
         self.error_statistics = {}
         self.key_error_statistics = {}
@@ -118,13 +128,13 @@ class duplicates_preprocessing():
             del entries
 
 
-    def main(self, dir_name):
+    def main(self):
         # %%
-        file_types = self.kinds_of_files(dir_name, "*.json")
+        file_types = self.kinds_of_files(self.in_dir_name, f"*.{self.file_ending}")
         print(file_types)
 
         column_list = ["noise", "sgv", "date", "dateString"]
-        self.all_entries_json2csv(dir_name, "/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_measurement/", column_list)
+        self.all_entries_json2csv(self.in_dir_name, "", self.column_list)
 
 
 # %%
@@ -197,11 +207,12 @@ def main_OpenAPS():
 
     all_entries_json2csv_OpenAPS_part1(dir_name, "/home/reinhold/Daten/OPEN/OpenAPS_Data/csv_per_measurement/", column_list)
 
+def main(dataset : str, config_filename : str = "IO.json", config_path : str = "."):
+    dpp = duplicates_preprocessing(dataset, config_filename, config_path)
+
 
 if __name__ == "__main__":
-    dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/"
-    dpp = duplicates_preprocessing()
-    dpp.main(dir_name)
+    fire.Fire(main)
 
     #main_OPENonOH()
     main_OpenAPS()
