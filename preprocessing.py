@@ -96,6 +96,7 @@ class duplicates_preprocessing():
 
     def extract_json_gz(self, dir_name):
         # %%
+        # for the OpenAPS dataset
         # gunzip json.gz to json files
         # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/00749582/69754"
         # file_name = "entries__to_2018-06-07.json"
@@ -105,8 +106,14 @@ class duplicates_preprocessing():
         # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/"
         search_string = os.path.join(f"{dir_name}","**",f"*.{self.file_ending}.gz")
         print(search_string)
+        json_gz = set([x[:-3] for x in sorted(glob.glob(search_string, recursive=True))])
+        json_ = set(sorted(glob.glob(search_string[:-3], recursive=True))) 
 
-        for i, f in enumerate(sorted(glob.glob(search_string, recursive=True))):
+        if len(json_gz ^ json_) > 0:
+            print(f"json files without corresponding json.gz file: ", json_ - json_gz)
+            print(f"json.gz files without corresponding json file: ", json_gz - json_)
+
+        for i, f in enumerate(json_gz - json_):
             os.system(f"gunzip {f}")
             if i % 100 == 0: print(i, f)
 
@@ -134,9 +141,10 @@ class duplicates_preprocessing():
 
     def main(self):
         # %%
+        self.extract_json_gz(self.in_dir_name)
         file_types = self.kinds_of_files(self.in_dir_name)
         print(file_types)
-        self.all_entries_json2csv()
+        #self.all_entries_json2csv()
 
 
 # %%
