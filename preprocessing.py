@@ -35,17 +35,13 @@ class duplicates_preprocessing():
         self.key_error_statistics = {}
 
     def __del__(self):
-        print(self.key_error_statistics)
-        print(self.error_statistics)
+        print("key_error_statistics: ", self.key_error_statistics)
+        print("error_statistics: ", self.error_statistics)
 
 
 
-    def load_one_json(self,  dir_name : str, file_name : str):
-        with open(os.path.join(dir_name, file_name)) as f:
-            return json.load(f)
 
-
-    def one_json2csv(self, entries, outfile_name):
+    def one_json2csv(self, dir_name : str, infile_name : str, outfile_name : str):
         """
         input: this function reads a json-file
         algo:
@@ -54,45 +50,48 @@ class duplicates_preprocessing():
         output: produces an output csv file with one entry being one line in the output file
 
         """
-
         data = list()
-        for i, entry in enumerate(entries):
-            # if i % 10000 == 0: print(i, entry)
-            try:
-                pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
-                data.append([entry[column] for column in self.columns])
-            except KeyError as e:
-                # print(f"{i}, key_error: {e}")
-                if e in self.key_error_statistics.keys():
-                    self.key_error_statistics[e] += 1
-                else:
-                    self.key_error_statistics[e] = 1            
-            except Exception as e:
-                if e in self.error_statistics.keys():
-                    self.error_statistics[e] += 1
-                else:
-                    self.error_statistics[e] = 1            
-                
-        df = pd.DataFrame(data=data, columns=self.columns)
-        df.to_csv(os.path.join(self.out_dir_name, outfile_name))
-        #print(my_dict[0])
+        with open(os.path.join(dir_name, infile_name)) as f:
+            entries = json.load(f)
+            if len(entries) < 1:
+                print(f"{infile_name} has 0 entries, therefore no output.")
+                return
+
+            for i, entry in enumerate(entries):
+                # if i % 10000 == 0: print(i, entry)
+                try:
+                    pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
+                    data.append([entry[column] for column in self.columns])
+                except KeyError as e:
+                    # print(f"{i}, key_error: {e}")
+                    if e in self.key_error_statistics.keys():
+                        self.key_error_statistics[e] += 1
+                    else:
+                        self.key_error_statistics[e] = 1            
+                except Exception as e:
+                    if e in self.error_statistics.keys():
+                        self.error_statistics[e] += 1
+                    else:
+                        self.error_statistics[e] = 1            
+                    
+            df = pd.DataFrame(data=data, columns=self.columns)
+            df.to_csv(os.path.join(self.out_dir_name, outfile_name))
+            del entries
+        del data
 
 
     def all_entries_json2csv(self):
-        for i, f in enumerate(glob.glob(os.path.join(f"{self.in_dir_name}","**", f"entries*.{self.file_ending}"), recursive=True)):
+        for i, f in enumerate(sorted(glob.glob(os.path.join(f"{self.in_dir_name}","**", f"entries*.{self.file_ending}"), recursive=True))):
+            if i < 130: continue
+            if i % 10 == 0: print(i, f)
             head, tail = os.path.split(f)
             sub_dirs = head[len(self.in_dir_name):]
             dir_name_components = sub_dirs.split("/")
             # first = 82868075, second = 21672228 in home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/82868075/21672228/entries__to_2020-09-11
             first, second = dir_name_components[0], dir_name_components[1]  
             filename, _ = os.path.splitext(tail)
-            entries = self.load_one_json(head, tail)
             # print(outdir_name, os.path.join(first + "_" + second + "_" + filename + ".csv")
-            if len(entries) > 0:
-                self.one_json2csv(entries, first + "_" + second + "_" + filename + ".csv")
-            else:
-                print(f"{tail} has 0 entries, therefore no output.")
-            del entries
+            self.one_json2csv(head, tail, first + "_" + second + "_" + filename + ".csv")
 
 
     def extract_json_gz(self, dir_name):
@@ -104,8 +103,9 @@ class duplicates_preprocessing():
         # file_name = "profile__to_2018-06-07.json"
             
         # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/"
-        search_string = os.path.join(f"{dir_name}","**","*.json.gz")
+        search_string = os.path.join(f"{dir_name}","**",f"*.{self.file_ending}.gz")
         print(search_string)
+
         for i, f in enumerate(sorted(glob.glob(search_string, recursive=True))):
             os.system(f"gunzip {f}")
             if i % 100 == 0: print(i, f)
