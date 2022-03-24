@@ -1,9 +1,28 @@
-# %%
 import json
 import os
 import pandas as pd
 import numpy as np
 import glob
+import fire
+
+class aggregation(object):
+
+    def __init__(self, config_filename : str, config_path : str, dataset : str = "OpenAPS_NS"):
+        f = open(os.path.join(config_path, config_filename))
+        IO_json = json.load(f)
+        self.dataset = dataset
+        
+        assert(self.dataset in self.datasets)
+
+        self.json_input = IO_json["aggregation"][self.dataset]["input"]
+        self.json_output = IO_json["aggregation"][self.dataset]["output"]
+
+        self.in_dir_name = self.json_input["dir_name"]
+        self.columns = self.json_input["columns"]
+        self.file_pattern = self.json_input["file_pattern"]
+
+        self.out_dir_name = self.json_output["dir_name"]
+        os.makedirs(self.out_dir_name, exist_ok=True)
 
 def all_csv(indir_name, df_list):
     for i, f in enumerate(glob.glob(os.path.join(f"{indir_name}","**", "*entries*.csv"), recursive=True)):
@@ -14,19 +33,6 @@ def all_csv(indir_name, df_list):
         if len(df)<1:
             print(f"no entries: {head}, {tail}") 
             continue
-        #column_type = str(df["dateString"].dtype)
-        #if "datetime" not in str(column_type).lower(): 
-        #    raise Exception(f"there was an import error: {column_type}")
-        """
-        df["unix_timestamp"] = df["date"]
-        df["datetime"] = pd.to_datetime(df["dateString"])
-        df.info()
-        print(df)
-        
-        df["date"] = df["datetime"].dt.date
-        df.info()
-        print(df)
-        """
         
         df["unix_timestamp"] = df["date"]
         # unix_timestamp in ms is a 13 digit number, in s it is a 10 digit number (in 2022)
@@ -58,7 +64,8 @@ def all_csv(indir_name, df_list):
         df_list.append(df2)
         
 
-def main(dataset : str):
+def main(dataset : str, config_filename : str = "IO.json", config_path : str = "."):
+
     indir = f"/home/reinhold/Daten/OPEN/{dataset}_Data/csv_per_measurement"
     outdir = f"/home/reinhold/Daten/OPEN/{dataset}_Data/csv_per_day/"
     outfile_name = f"entries_{dataset}.csv"
@@ -73,11 +80,6 @@ def main(dataset : str):
 
 
 if __name__ == "__main__":
-    dataset = "OpenAPS_NS"
-    main(dataset)
-
-    dataset = "OPENonOH"
-    main(dataset)
-
+    fire.Fire(main)
 
 
