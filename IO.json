@@ -26,6 +26,29 @@
         }
     },
 
+    "duplicates_aggregation":
+    {
+        "OPENonOH" : {
+            "input" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_measurement/",
+                "file_pattern" : "*entries*.csv"
+            },
+            "output" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/",
+                "file_name" : "OPENonOH_per_day.csv"
+            }
+        },
+        "OpenAPS_NS" : {
+            "input" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/csv_per_measurement/",
+                "file_pattern" : "*entries*.csv"
+            },
+            "output" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/",
+                "file_name" : "OpenAPS_NS_per_day.csv"
+            }
+        }
+    },
 
     "duplicates_plot":
     {
