@@ -179,8 +179,8 @@ class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
     OpenAPS Nightscout files: direct-sharing-31
     """
 
-    def __init__(self, config_filename : str, config_path : str, dataset : str = "OpenAPS_NS"):
-        super().__init__(config_filename, config_path, dataset)
+    def __init__(self, config_filename : str, config_path : str, dataset : str = "OpenAPS_NS", console_log_level = logging.INFO):
+        super().__init__(config_filename, config_path, dataset, console_log_level)
         
 
     def kinds_of_files(self, dir_name):
@@ -222,7 +222,7 @@ class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
         logging.info(file_list[:3])  # head 
         logging.info(file_list[-3:])  # and tail
         for i, f in enumerate(file_list):
-            if i<80: continue
+            # if i<80: continue
             head, tail = os.path.split(f)
             if i%10==0: logging.info(f"{i}, {head}, {tail}")
             filename, _ = os.path.splitext(tail)
@@ -251,8 +251,8 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
     """
     OpenAPS Nightscout files: direct-sharing-31
     """
-    def __init__(self, config_filename : str, config_path : str, dataset = "OpenAPS_AAPS_Uploader"):
-        super().__init__(config_filename, config_path, dataset)
+    def __init__(self, config_filename : str, config_path : str, dataset = "OpenAPS_AAPS_Uploader", console_log_level = logging.INFO):
+        super().__init__(config_filename, config_path, dataset, console_log_level)
 
 
 
