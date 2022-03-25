@@ -4,16 +4,17 @@ import pandas as pd
 import numpy as np
 import glob
 import fire
+from preprocessing import datasets
+
 
 class duplicates_aggregation(object):
 
     def __init__(self, config_filename : str, config_path : str, dataset : str = "OpenAPS_NS"):
-        self.datasets = ["OpenAPS_NS", "OPENonOH"]
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
         self.dataset = dataset
         
-        assert(self.dataset in self.datasets)
+        assert(self.dataset in datasets)
 
         self.json_input = IO_json["duplicates_aggregation"][self.dataset]["input"]
         self.json_output = IO_json["duplicates_aggregation"][self.dataset]["output"]
@@ -68,11 +69,18 @@ class duplicates_aggregation(object):
             df2["user_id"] = fn_components[0]
             
             self.df_list.append(df2)
-        
 
-def main(dataset : str, config_filename : str = "IO.json", config_path : str = "."):
-    agg = duplicates_aggregation(config_filename, config_path, dataset)
-    agg.loop()
+
+
+def main(dataset : str = "", config_filename : str = "IO.json", config_path : str = "."):
+    if dataset == "":
+        for d in datasets: 
+            print(d)
+            agg = duplicates_aggregation(config_filename, config_path, d)
+            agg.loop()
+    else: 
+        agg = duplicates_aggregation(config_filename, config_path, dataset)
+        agg.loop()
 
 
 if __name__ == "__main__":
