@@ -2,9 +2,9 @@
     "duplicates_preprocessing":
     {
         "OPENonOH" : {
+            "columns" : ["noise", "sgv", "date", "dateString"],
             "input" : {
                 "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/",
-                "columns" : ["noise", "sgv", "date", "dateString"],
                 "file_ending" : "json"
             },
             "output" : {
@@ -12,13 +12,24 @@
             }
         },
         "OpenAPS_NS" : {
+            "columns" : ["noise", "sgv", "date", "dateString"],
             "input" : {
                 "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_Data/raw",
-                "columns" : ["noise", "sgv", "date", "dateString"],
                 "file_ending" : "json"
             },
             "output" : {
                 "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/csv_per_measurement/"
+            }
+        },
+        "OpenAPS_AAPS_Uploader" : {
+            "input" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_Data/raw",
+                "columns" : ["value", "date"],
+                "file_ending" : "json"
+            },
+            "output" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/csv_per_measurement/",
+                "columns" : ["noise", "sgv", "date", "dateString"]
             }
         },
         "logging" : {
@@ -47,7 +58,19 @@
                 "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/",
                 "file_name" : "OpenAPS_NS_per_day.csv"
             }
+        },
+        "OpenAPS_AAPS_Uploader" : {
+            "input" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/csv_per_measurement/",
+                "file_pattern" : "*entries*.csv"
+            },
+            "output" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/",
+                "file_name" : "OpenAPS_AAPS_Uploader_per_day.csv"
+            }
         }
+
+
     },
 
     "duplicates_plot":
@@ -64,7 +87,7 @@
                 "1": "green", 
                 "2": "blue", 
                 "3": "red",
-                "comment" : "keys match the dataset numbering"
+                "comment" : "keys of colors-dict match the dataset numbering"
             }  
         }
     }

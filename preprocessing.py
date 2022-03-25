@@ -25,8 +25,9 @@ class duplicates_preprocessing(object):
         """
         read a config file and populate input and output file names and paths:
             - output a csv file with key [user_id, date] and one entry per measurement
+        @param dataset: is used as a key in the json-config-file.
         """
-        self.datasets = ["OpenAPS_NS", "OPENonOH"]
+        self.datasets = ["OpenAPS_NS", "OPENonOH", "OpenAPS_AAPS_Uploader"]
 
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
@@ -40,7 +41,20 @@ class duplicates_preprocessing(object):
         self.json_logging = IO_json["duplicates_preprocessing"]["logging"]
 
         self.in_dir_name = self.json_input["dir_name"]
-        self.columns = self.json_input["columns"]
+        try:
+            self.in_columns = IO_json["duplicates_preprocessing"][self.dataset]["columns"]
+            self.out_columns = IO_json["duplicates_preprocessing"][self.dataset]["columns"]
+        except KeyError as e:
+            self.in_columns = self.json_input["columns"]
+            self.out_columns = self.json_output["columns"]
+                    
+        try:
+            self.in_columns = self.json_input["columns"]
+            self.out_columns = self.json_output["columns"]
+        except KeyError as e:
+            if self.in_columns is None or self.out_columns is None:
+                raise KeyError("Check the config json file. Column names must be present at the one of two levels in the config json file.")
+
         self.file_ending = self.json_input["file_ending"]
 
         self.out_dir_name = self.json_output["dir_name"]
@@ -59,6 +73,10 @@ class duplicates_preprocessing(object):
 
         self.error_statistics = {}
         self.key_error_statistics = {}
+
+        # store the json-config file and the dataset in the logging file
+        logging.debug(IO_json)
+        logging.debug(self.dataset)
 
     def __del__(self):
         logging.debug(f"key_error_statistics: {self.key_error_statistics}")
@@ -86,7 +104,7 @@ class duplicates_preprocessing(object):
             for i, entry in enumerate(entries):
                 try:
                     pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
-                    data.append([entry[column] for column in self.columns])
+                    data.append([entry[column] for column in self.in_columns])
                 except KeyError as e:
                     if e in self.key_error_statistics.keys():
                         self.key_error_statistics[e] += 1
@@ -98,7 +116,7 @@ class duplicates_preprocessing(object):
                     else:
                         self.error_statistics[e] = 1            
                     
-            df = pd.DataFrame(data=data, columns=self.columns)
+            df = pd.DataFrame(data=data, columns=self.out_columns)
             df.to_csv(os.path.join(self.out_dir_name, outfile_name))
             del entries
         del data
@@ -118,6 +136,8 @@ class duplicates_preprocessing(object):
             # first = 82868075, second = 21672228 in home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/82868075/21672228/entries__to_2020-09-11
             first, second = dir_name_components[0], dir_name_components[1]  
             filename, _ = os.path.splitext(tail)
+            if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + second + "_" + filename + ".csv")): 
+                continue
             self.one_json2csv(head, tail, first + "_" + second + "_" + filename + ".csv")
         
 
@@ -206,25 +226,20 @@ class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
 
         return file_types1, file_types2
 
-    def condition(self, params : Params) -> bool:
-        # if not params.second == "direct-sharing-31": raise ValueError(f"not second==direct-sharing-31: {params.head}, {params.tail}: {params.first}, {params.second}")
-        if params.first not in params.filename: raise Exception(f"first not in filename: {params.head}, {params.tail}: {params.first}, {params.second}")
-        return params.second == "direct-sharing-31"
-
 
     def all_entries_json2csv(self):
         """
         focus on NightScout uploads: direct-sharing-31 
         excluded AndroidAPS Uploader ()
         """
-        file_list = sorted(glob.glob(os.path.join(f"{self.in_dir_name}","**", "*entries*.json"), recursive=True))
+        file_list = sorted(glob.glob(os.path.join(f"{self.in_dir_name}","**", "direct-sharing-31","**", "*entries*.json"), recursive=True))
         logging.info(f"number of files: {len(file_list)}")
         logging.info(file_list[:3])  # head 
         logging.info(file_list[-3:])  # and tail
         for i, f in enumerate(file_list):
             # if i<80: continue
             head, tail = os.path.split(f)
-            if i%10==0: logging.info(f"{i}, {head}, {tail}")
+            #if i%10==0: logging.info(f"{i}, {head}, {tail}")
             filename, _ = os.path.splitext(tail)
             if os.path.isfile(os.path.join(self.out_dir_name, filename + ".csv")): 
                 continue
@@ -234,11 +249,9 @@ class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
             # first = 96254963, second = direct-sharing-31 in /home/reinhold/Daten/OPEN/OpenAPS_Data/raw/96254963/direct-sharing-31
             first, second = dir_name_components[0], dir_name_components[1]  
 
-            params = Params(head, tail, filename, first, second)
-
             #if i%10==0: logging.info(", ".join([f"{x}: {params[i]}" for i,x in enumerate(params._asdict().keys())]))
             try: 
-                if not self.condition(params): continue
+                if first not in filename: raise Exception(f"first not in filename: {head}, {tail}: {first}, {second}")
                 self.one_json2csv(head, tail, filename + ".csv")
                 
             except (ValueError, Exception) as e:
@@ -249,22 +262,104 @@ class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
 
 class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_OpenAPS_NS):
     """
-    OpenAPS Nightscout files: direct-sharing-31
+    OpenAPS AAPS_Uploader: direct-sharing-396
     """
     def __init__(self, config_filename : str, config_path : str, dataset = "OpenAPS_AAPS_Uploader", console_log_level = logging.INFO):
         super().__init__(config_filename, config_path, dataset, console_log_level)
 
 
+    def one_json2csv(self, dir_name : str, infile_name : str, outfile_name : str):
+        """
+        input: this function reads a json-file
+        algo:
+        - flattens the structure
+        - filters a subset of columns
+        output: produces an output csv file with one entry being one line in the output file
 
-def main(dataset : str, config_filename : str = "IO.json", config_path : str = "."):
-    if dataset == "OpenAPS_NS":
+        """
+        data = list()
+
+        in_columns = ["value", "date"]
+        with open(os.path.join(dir_name, infile_name)) as f:
+            entries = json.load(f)
+            if len(entries) < 1:
+                logging.info(f"{infile_name} has 0 entries, therefore no output.")
+                return
+            for i, entry in enumerate(entries):
+                try:
+                    #pd.to_datetime(entry["date"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
+                    # noise, 
+                    row = ["1"]
+                    row.extend([entry[column] for column in in_columns])
+                    row.append(datetime.datetime.utcfromtimestamp(int(entry["date"]*0.001)).strftime('%Y-%m-%d %H:%M:%S'))  # date is in msec
+                    data.append(row)
+                except KeyError as e:
+                    if e in self.key_error_statistics.keys():
+                        self.key_error_statistics[e] += 1
+                    else:
+                        self.key_error_statistics[e] = 1            
+                except Exception as e:
+                    if e in self.error_statistics.keys():
+                        self.error_statistics[e] += 1
+                    else:
+                        self.error_statistics[e] = 1            
+                    
+            df = pd.DataFrame(data=data, columns=self.out_columns)
+            df.to_csv(os.path.join(self.out_dir_name, outfile_name))
+            del entries
+        del data
+
+
+    def all_entries_json2csv(self):
+        """
+        focus on AndroidAPS Uploader uploads: direct-sharing-396
+        """
+        file_list = sorted(glob.glob(os.path.join(f"{self.in_dir_name}","**", "direct-sharing-396","**", "*BgReadings.json"), recursive=True))
+        logging.info(f"number of files: {len(file_list)}")
+        logging.info(file_list[:3])  # head 
+        logging.info(file_list[-3:])  # and tail
+        for i, f in enumerate(file_list):
+            # if i<80: continue
+            head, tail = os.path.split(f)
+            if i%10==0: logging.info(f"{i}, {head}, {tail}")
+            filename, _ = os.path.splitext(tail)
+            sub_dirs = head[len(self.in_dir_name):]
+            sub_dirs = sub_dirs.strip('/')
+            dir_name_components = sub_dirs.split("/")
+            # first = 98120605, second = upload-num181-ver1-date20210322T001829-appid4bf04b5c787e4200a085419a8a32049f in AndroidAPS_Uploader/98120605/direct-sharing-396/upload-num181-ver1-date20210322T001829-appid4bf04b5c787e4200a085419a8a32049f/BgReadings.json
+            first, second = dir_name_components[1], dir_name_components[3]
+            if os.path.isfile(os.path.join(self.out_dir_name, first + "_entries_" + second + ".csv")): 
+                continue
+
+            params = Params(head, tail, filename, first, second)
+
+            if i%10==0: logging.info(", ".join([f"{x}: {params[i]}" for i,x in enumerate(params._asdict().keys())]))
+            try: 
+                self.one_json2csv(head, tail, first + "_entries_" + second + ".csv")
+                
+            except (ValueError, Exception) as e:
+                if e in self.error_statistics.keys():
+                    self.error_statistics[e] += 1
+                else:
+                    self.error_statistics[e] = 1
+
+
+
+def main(dataset : str, config_filename : str = "IO.json", config_path : str = ".", console_log_level : str = "info"):
+    if not console_log_level == "info":
+        print("not yet implemented: requires translation of info to logging.INFO, etc.")
+
+    if dataset == "OpenAPS_NS":  # is used as a key in the IO.json-file
         dpp = duplicates_preprocessing_OpenAPS_NS(config_filename, config_path)
+        dpp.loop()
+    elif dataset == "OpenAPS_AAPS_Uploader": 
+        dpp = duplicates_preprocessing_OpenAPS_AAPS_Uploader(config_filename, config_path)
         dpp.loop()
     elif dataset == "OPENonOH":
         dpp = duplicates_preprocessing(config_filename, config_path)
         dpp.loop()
     else: 
-        logging.error("unknown dataset: {dataset}, should be one of ['OpenAPS_NS', 'OPENonOH']")
+        logging.error("unknown dataset: {dataset}, should be one of ['OpenAPS_NS', 'OPENonOH', 'OpenAPS_AAPS_Uploader']")
 
 if __name__ == "__main__":
     fire.Fire(main)
