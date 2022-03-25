@@ -8,6 +8,8 @@ import fire
 import logging
 import datetime
 
+datasets = ["OpenAPS_NS", "OPENonOH", "OpenAPS_AAPS_Uploader"]
+
 """
 call as: python3 duplicates_preprocessing.py --dataset=[...] [--config_filename=IO.json] [--config_path="."]
 
@@ -27,13 +29,12 @@ class duplicates_preprocessing(object):
             - output a csv file with key [user_id, date] and one entry per measurement
         @param dataset: is used as a key in the json-config-file.
         """
-        self.datasets = ["OpenAPS_NS", "OPENonOH", "OpenAPS_AAPS_Uploader"]
 
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
         self.dataset = dataset
         
-        assert(self.dataset in self.datasets)
+        assert(self.dataset in datasets)
 
 
         self.json_input = IO_json["duplicates_preprocessing"][self.dataset]["input"]
