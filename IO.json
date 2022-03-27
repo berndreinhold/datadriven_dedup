@@ -76,13 +76,13 @@
     "duplicates_plot":
     {
         "input" : {
-            "OPENonOH" : ["/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_day", "entries_OPENonOH.csv"],
-            "OpenAPS" : ["/home/reinhold/Daten/OPEN/OpenAPS_Data/csv_per_day/", "entries_OpenAPS.csv"],
-            "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_OPENonOH.csv"]
+            "ds1" : ["/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
+            "ds2" : ["/home/reinhold/Daten/OPEN/OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH"],
+            "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OPENonOH.csv", "duplicates"]
         },
         "output" : {
             "img_path": [".", "Duplicates.png"],
-            "title" : "OpenAPS, duplicates, OPENonOH",
+            "title_prefix" : "duplicates between datasets",
             "colors" : {
                 "1": "green", 
                 "2": "blue", 
