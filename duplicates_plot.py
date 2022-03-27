@@ -6,11 +6,12 @@ import matplotlib.dates as mdates
 import os
 import json
 import fire
+from preprocessing import datasets
 
 """
 call as: python3 duplicates_plot.py [--config_filename=IO.json] [--config_path="."]
 
-takes two dataset files and a duplicates file, which has been produced by other functions (see e.g. )
+takes two dataset files and a duplicates file of these two datasets, which has been produced by other code (aggregation.py and preprocessing.py)
 """
 
 
@@ -22,17 +23,17 @@ class duplicates_plot():
         read a config file and populate file names and paths of three csv files:
             - OpenAPS with key [user_id, date]
             - OPENonOH with key [user_id, date]
-            - duplicates file containing the duplicates between the two data files with key [user_id_OpenAPS, user_id_OPENonOH, date]
+            - duplicates file containing the duplicates between the two data files with key [user_id_ds1, user_id_ds2, date]
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
         self.json_input = IO_json["duplicates_plot"]["input"]
         self.json_output = IO_json["duplicates_plot"]["output"]
 
-        self.dataset = ["OpenAPS", "duplicates", "OPENonOH"]  # the sequence is ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
+        self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
         self.df = {}
         for ds in self.dataset:
-            self.df[ds] = pd.read_csv(os.path.join(*self.json_input[ds]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds] = pd.read_csv(os.path.join(self.json_input[ds][0], self.json_input[ds][1]), header=0, parse_dates=[1], index_col=0)
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
             # fix the data types that were loaded as the unspecific "object"
             for col in self.df[ds].columns:
@@ -40,7 +41,7 @@ class duplicates_plot():
                     self.df[ds][col] = self.df[ds][col].astype('string')
 
         # fix the data types that were loaded as the unspecific "object"
-        self.df["duplicates"]['user_id_OpenAPS'] = self.df["duplicates"]['user_id_OpenAPS'].astype(int)
+        self.df["duplicates"]['user_id_ds1'] = self.df["duplicates"]['user_id_ds1'].astype(int)
 
 
     def merge_with_duplicates_dataset(self):
@@ -48,42 +49,42 @@ class duplicates_plot():
         input: the three data frames "OpenAPS", "OPENonOH", "duplicates"
 
         output and algo: 
-        df["OpenAPS_duplicates"]: merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_OpenAPS, date] (outer join) 
-        df["OPENonOH_duplicates"]: merge the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_OPENonOH, date] (outer join)
+        df["OpenAPS_duplicates"]: merge the OpenAPS and the duplicates dataset on [user_id, date]/[user_id_ds1, date] (outer join) 
+        df["OPENonOH_duplicates"]: merge the OPENonOH with the duplicates dataset on [user_id, date]/[user_id_ds2, date] (outer join)
         
         add merged data frames OpenAPS_duplicates and OPENonOH_duplicates to self.df-dictionary of data frames
         """
-        for ds in ["OpenAPS", "OPENonOH"]:
+        for ds in ["ds1", "ds2"]:
             self.df[f"{ds}_duplicates"] = self.df[ds].merge(self.df["duplicates"], left_on=["date", "user_id"], right_on=["date", f"user_id_{ds}"], 
                 how="outer", suffixes=(f"_{ds}", None))
 
-        # prepare the user_id variables for the merge of OpenAPS_duplicates and OPENonOH_duplicates
-        self.df[f"OpenAPS_duplicates"] = self.df[f"OpenAPS_duplicates"][["date", "user_id", "user_id_OPENonOH"]]
-        self.df[f"OpenAPS_duplicates"]["user_id_OpenAPS"] = self.df[f"OpenAPS_duplicates"]["user_id"]
-        self.df[f"OPENonOH_duplicates"] = self.df[f"OPENonOH_duplicates"][["date", "user_id", "user_id_OpenAPS"]]  
-        self.df[f"OPENonOH_duplicates"]["user_id_OPENonOH"] = self.df[f"OPENonOH_duplicates"]["user_id"]
+        # prepare the user_id variables for the merge of ds1_duplicates and ds2_duplicates
+        self.df[f"ds1_duplicates"] = self.df[f"ds1_duplicates"][["date", "user_id", "user_id_ds2"]]
+        self.df[f"ds1_duplicates"]["user_id_ds1"] = self.df[f"ds1_duplicates"]["user_id"]
+        self.df[f"ds2_duplicates"] = self.df[f"ds2_duplicates"][["date", "user_id", "user_id_ds1"]]  
+        self.df[f"ds2_duplicates"]["user_id_ds2"] = self.df[f"ds2_duplicates"]["user_id"]
 
         # focus just on the date, user_id_* variables
-        self.df[f"OpenAPS_duplicates"] = self.df[f"OpenAPS_duplicates"][["date", "user_id_OpenAPS", "user_id_OPENonOH"]]
-        self.df[f"OPENonOH_duplicates"] = self.df[f"OPENonOH_duplicates"][["date", "user_id_OpenAPS", "user_id_OPENonOH"]]  
+        self.df[f"ds1_duplicates"] = self.df[f"ds1_duplicates"][["date", "user_id_ds1", "user_id_ds2"]]
+        self.df[f"ds2_duplicates"] = self.df[f"ds2_duplicates"][["date", "user_id_ds1", "user_id_ds2"]]  
         
     def merge_all(self):
         """
         input: 
-        the merged data frames OpenAPS_duplicates and OPENonOH_duplicates
+        the merged data frames ds1_duplicates and ds2_duplicates
 
         output: 
-        df["merged_all"] with entries being uniquely identified by date, user_id_OpenAPS, user_id_OPENonOH
+        df["merged_all"] with entries being uniquely identified by date, user_id_ds1, user_id_ds2
 
         note:
-        an assumption here is that the sets of user_id_OpenAPS and user_id_OPENonOH are disjunct. Or if they are not disjunct, that they at least refer to the same person.
-        If there are instances where user_id_OpenAPS == user_id_OPENonOH, they will be joined below, even though they might not be in the duplicates list.
+        an assumption here is that the sets of user_id_ds1 and user_id_ds2 are disjunct. Or if they are not disjunct, that they at least refer to the same person.
+        If there are instances where user_id_ds1 == user_id_ds2, they will be joined below, even though they might not be in the duplicates list.
         Probably a not very likely risk: See disjunct_user_ids().
         """
 
-        # then merge these on user_id_OpenAPS, user_id_OPENonOH and date (outer join)
-        self.df["merged_all"] = self.df[f"OpenAPS_duplicates"].merge(self.df["OPENonOH_duplicates"], left_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], 
-            right_on=["date", "user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
+        # then merge these on user_id_ds1, user_id_ds2 and date (outer join)
+        self.df["merged_all"] = self.df["ds1_duplicates"].merge(self.df["ds2_duplicates"], left_on=["date", "user_id_ds1", "user_id_ds2"], 
+            right_on=["date", "user_id_ds1", "user_id_ds2"], how="outer")
 
 
 
@@ -91,25 +92,26 @@ class duplicates_plot():
         """
         preparation of the dataframe for plotting: 
         1. introduce the "dataset" variable for sorting prior to plotting
-        2. calculate an arbitrary auto-incremental index to plot instead of user_id_OpenAPS and user_id_OPENonOH
+        2. calculate an arbitrary auto-incremental index to plot instead of user_id_ds1 and user_id_ds2
         """
         out = self.df["merged_all"]  # just an alias for easier readibility below
 
-        out.loc[pd.isnull(out["user_id_OPENonOH"]), "dataset"] = 1  # OpenAPS
-        out.loc[pd.isnull(out["user_id_OpenAPS"]), "dataset"] = 3  # OPENonOH
-        out.loc[~(pd.isnull(out["user_id_OPENonOH"]) | pd.isnull(out["user_id_OpenAPS"])), "dataset"] = 2  # duplicates, partially overwrites 1 and 3
+        out.loc[pd.isnull(out["user_id_ds2"]), "dataset"] = 1  # ds1
+        out.loc[pd.isnull(out["user_id_ds1"]), "dataset"] = 3  # ds2
+        out.loc[~(pd.isnull(out["user_id_ds2"]) | pd.isnull(out["user_id_ds1"])), "dataset"] = 2  # duplicates
         out["dataset"] = out["dataset"].astype(int)
 
-        out = out.sort_values(by=["dataset", "user_id_OpenAPS", "user_id_OPENonOH", "date"])
+        out = out.sort_values(by=["dataset", "user_id_ds1", "user_id_ds2", "date"])
         
-        # determine an auto-incremental index "id" for plotting instead of the user_id_OpenAPS, user_id_OPENonOH
-        df_user_id = out[["dataset", "user_id_OpenAPS", "user_id_OPENonOH"]].groupby(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"], as_index=False, dropna=False).agg("count")    
-        df_user_id = df_user_id.sort_values(["dataset", "user_id_OpenAPS", "user_id_OPENonOH"])
+        # determine an auto-incremental index "id" for plotting instead of the user_id_ds1, user_id_ds2
+        df_user_id = out[["dataset", "user_id_ds1", "user_id_ds2"]].groupby(["user_id_ds1", "user_id_ds2"], as_index=False, dropna=False).agg("count")    
+        df_user_id = df_user_id.sort_values(["user_id_ds1", "user_id_ds2"])
         df_user_id["id"] = range(len(df_user_id))
-        df_user_id = df_user_id[["id", "user_id_OpenAPS", "user_id_OPENonOH"]]  # drop the dataset variable, which was only necessary for proper sorting of values prior to calculating the "id"
-
+        
+        df_user_id = df_user_id[["id", "user_id_ds1", "user_id_ds2"]]  # drop the dataset variable, which was only necessary for proper sorting of values prior to calculating the "id"
+        
         # merge the df_user_id with the out dataset
-        self.df["merged_all"] = out.merge(df_user_id, left_on=["user_id_OpenAPS", "user_id_OPENonOH"], right_on=["user_id_OpenAPS", "user_id_OPENonOH"], how="outer")
+        self.df["merged_all"] = out.merge(df_user_id, left_on=["user_id_ds1", "user_id_ds2"], right_on=["user_id_ds1", "user_id_ds2"], how="outer")
         #print(self.df["merged_all"])
         self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False, dropna=False).agg("count")
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
@@ -132,7 +134,7 @@ class duplicates_plot():
         plt.gcf().autofmt_xdate()
         plt.grid()
 
-        plt.title(self.json_output["title"])
+        plt.title(self.json_output["title_prefix"])
         plt.xlabel("date")
         plt.ylabel("person (index)")
         plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
@@ -154,7 +156,8 @@ class duplicates_plot():
         colors = self.json_output["colors"]
         #c = [colors[f"{ds}"] for ds in df["dataset"].astype(int).values]
         
-        ax.scatter(x,y, marker='s', s=1, c=colors[f"{dataset}"], label=f"{self.dataset[dataset-1]} ({len(x)} d)")
+        label_ = self.json_input[self.dataset[dataset-1]][2]  # the key provided to json_input is one of "ds1", "duplicates", "ds2"
+        ax.scatter(x,y, marker='s', s=1, c=colors[f"{dataset}"], label=f"{label_} ({len(x)} d)")
         
         
 
