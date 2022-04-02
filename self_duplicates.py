@@ -62,16 +62,15 @@ class self_duplicates(object):
         df_gb.sort_values(by=['user_id', 'date'], inplace=True)
         return df_gb
 
-    def loop(self):
-        for dataset in self.datasets:
-            df_groupby = self.list_self_duplicates(dataset)
-            self.clean_self_duplicates(df_groupby, dataset)
-
     def clean_self_duplicates(self, df_groupby : pd.DataFrame, dataset : str):
         df_merged = pd.merge(self.df[dataset], df_groupby, how='inner', left_on=["date", "user_id", "filename"], right_on=["date", "user_id", "one_filename"])
         df_merged = df_merged[self.df[dataset].columns]
         df_merged.to_csv(os.path.join(self.IO_json[dataset]["dir_name"], self.IO_json[dataset]["out_file_name"]))
 
+    def loop(self):
+        for dataset in self.datasets:
+            df_groupby = self.list_self_duplicates(dataset)
+            self.clean_self_duplicates(df_groupby, dataset)
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
 
