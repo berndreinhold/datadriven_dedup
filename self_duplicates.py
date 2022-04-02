@@ -52,34 +52,30 @@ class self_duplicates(object):
         # self.df[f"{dataset}_groupby"] = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg("count")
         df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg("count")
         
-        # print(df_gb[df_gb["filename"]> 1])
-        df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg(count_filename= ('filename', 'count'), groupby_filename=('filename', lambda x: ", ".join(x)))
-        # df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg(count_filename= ('filename', 'count'), groupby_filename=('filename', lambda x: x))
-
-        df_gb = df_gb.apply({'date' : lambda x: x, 'user_id' : lambda x: x, 'count_filename' : lambda x: x, 'groupby_filename': lambda x: x.split(",")[0]})
-        # self.df[f"{dataset}_groupby"] = self.df[dataset].groupby(["date", "user_id"], as_index=False, dropna=False).apply(lambda x: f"{len(x.filename)}, " + ", ".join(x.filename))
+        # the following needs to be done in two steps: first: ", ".join(x), then: x.split(",")[0]
+        df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg(count_fn= ('filename', 'count'), groupby_filename=('filename', lambda x: ", ".join(x)))
+        df_gb = df_gb.apply({'date' : lambda x: x, 'user_id' : lambda x: x, 'count_fn' : lambda x: x, 'groupby_filename': lambda x: x.split(",")[0]})
+        df_gb["one_filename"] = df_gb["groupby_filename"]
+        df_gb = df_gb[["date", "user_id", "count_fn", "one_filename"]]
         print(df_gb)
         print(f"{dataset} after groupby (date, user_id): ", len(df_gb))
-        #self.df[f"{dataset}_groupby"].columns = ["date", "user_id", "sgv_mean","sgv_std", "sgv_min", "sgv_max", "sgv_count", "filenames"]
-        #self.df[f"{dataset}_groupby"].to_csv(f"{dataset}_groupby_date_user_id.csv")
-        #print(self.df[f"{dataset}_groupby"])
-        # gui = pdg.show(self.df[f"{dataset}_groupby"])
-        #df = df_gb[df_gb["count_filename"]> 1]
-        df_gb.sort_values(by=['user_id', 'date']).to_csv(f"groupby_{dataset}.csv")
-        # test = self.df[f"{dataset}_groupby"]
-        # print(test["filenames"])
-        # test = test.loc[test["filenames"].apply(lambda a: '"' in str(a))]
-        # print(test["filenames"].apply(lambda a: '"' in str(a)))
+        df_gb.sort_values(by=['user_id', 'date'], inplace=True)
         return df_gb
 
     def list_self_duplicates(self):
         for dataset in self.datasets:
-            self.list_self_duplicates_1ds(dataset)
+            df_groupby = self.list_self_duplicates_1ds(dataset)
+            self.clean_self_duplicates(df_groupby, dataset)
 
-    def clean_duplicates(self, dataset : str):
+    def clean_duplicates(self, df_groupby : pd.DataFrame, dataset : str):
+        df_merged = pd.merge(self.df[dataset], df_groupby, how='inner join', left_on=[["date", "user_id", "filename"]], right_on=[["date", "user_id", "one_filename"]])
+        print(df_merged)
+        df_merged.info()
+        print(len(df_merged))
+        df_merged.to_csv(f"{dataset}_groupby.csv")
+
+    def loop(self):
         pass
-
-
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
 
