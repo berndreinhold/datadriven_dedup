@@ -33,23 +33,59 @@ class self_duplicates(object):
             - duplicates file containing the duplicates between the two data files with key [user_id_ds1, user_id_ds2, date]
         """
         f = open(os.path.join(config_path, config_filename))
-        IO_json = json.load(f)
-        self.json_input = IO_json["duplicates_plot"]["input"]
-        self.json_output = IO_json["duplicates_plot"]["output"]
+        self.IO_json = json.load(f)["self_duplicates"]
+        self.datasets = self.IO_json.keys()
+        self.sgv_columns = ["sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count"]  # sgv: single (?) glucose value (see json files)
+
+        self.df = {}
+        for ds in self.datasets:
+            self.df[ds] = pd.read_csv(os.path.join(self.IO_json[ds]["dir_name"], self.IO_json[ds]["in_file_name"]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
+            # fix the data types that were loaded as the unspecific "object"
+            for col in self.df[ds].columns:
+                if "filename" in col:
+                    self.df[ds][col] = self.df[ds][col].astype('string')
+
+
+    def list_self_duplicates_1ds(self, dataset : str) -> pd.DataFrame:        
+        print(f"{dataset}: ", len(self.df[dataset]))
+        # self.df[f"{dataset}_groupby"] = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg("count")
+        df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg("count")
+        
+        # print(df_gb[df_gb["filename"]> 1])
+        df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg(count_filename= ('filename', 'count'), groupby_filename=('filename', lambda x: ", ".join(x)))
+        # df_gb = self.df[dataset][["date", "user_id", "filename"]].groupby(["date", "user_id"], as_index=False, dropna=False).agg(count_filename= ('filename', 'count'), groupby_filename=('filename', lambda x: x))
+
+        df_gb = df_gb.apply({'date' : lambda x: x, 'user_id' : lambda x: x, 'count_filename' : lambda x: x, 'groupby_filename': lambda x: x.split(",")[0]})
+        # self.df[f"{dataset}_groupby"] = self.df[dataset].groupby(["date", "user_id"], as_index=False, dropna=False).apply(lambda x: f"{len(x.filename)}, " + ", ".join(x.filename))
+        print(df_gb)
+        print(f"{dataset} after groupby (date, user_id): ", len(df_gb))
+        #self.df[f"{dataset}_groupby"].columns = ["date", "user_id", "sgv_mean","sgv_std", "sgv_min", "sgv_max", "sgv_count", "filenames"]
+        #self.df[f"{dataset}_groupby"].to_csv(f"{dataset}_groupby_date_user_id.csv")
+        #print(self.df[f"{dataset}_groupby"])
+        # gui = pdg.show(self.df[f"{dataset}_groupby"])
+        #df = df_gb[df_gb["count_filename"]> 1]
+        df_gb.sort_values(by=['user_id', 'date']).to_csv(f"groupby_{dataset}.csv")
+        # test = self.df[f"{dataset}_groupby"]
+        # print(test["filenames"])
+        # test = test.loc[test["filenames"].apply(lambda a: '"' in str(a))]
+        # print(test["filenames"].apply(lambda a: '"' in str(a)))
+        return df_gb
+
+    def list_self_duplicates(self):
+        for dataset in self.datasets:
+            self.list_self_duplicates_1ds(dataset)
+
+    def clean_duplicates(self, dataset : str):
+        pass
 
 
 
-        for ds in ["ds1", "ds2"]:
-            print(f"{ds}: ", len(self.df[ds]))
-            self.df[f"{ds}_groupby"] = self.df[ds].groupby(["date", "user_id", "sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count"], as_index=False, dropna=False).apply(lambda x: f"{len(x.filename)}, " + ", ".join(x.filename))
-            # .agg("count")
-            print(f"{ds} after groupby (date, user_id): ", len(self.df[f"{ds}_groupby"]))
-            self.df[f"{ds}_groupby"].columns = ["date", "user_id", "sgv_mean","sgv_std", "sgv_min", "sgv_max", "sgv_count", "filenames"]
-            self.df[f"{ds}_groupby"].to_csv(f"{ds}_groupby_date_user_id.csv")
-            # print(self.df[f"{ds}_groupby"])
-            # gui = pdg.show(self.df[f"{ds}_groupby"])
+def main(config_filename : str = "IO.json", config_path : str = "."):
 
-            # test = self.df[f"{ds}_groupby"]
-            # print(test["filenames"])
-            # test = test.loc[test["filenames"].apply(lambda a: '"' in str(a))]
-            # print(test["filenames"].apply(lambda a: '"' in str(a)))
+    sd = self_duplicates(config_filename, config_path)
+    sd.list_self_duplicates()
+    
+
+if __name__ == "__main__":
+    main()
