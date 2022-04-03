@@ -79,6 +79,16 @@
                 "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/",
                 "file_name" : "OpenAPS_AAPS_Uploader_per_day_with-self-duplicates.csv"
             }
+        },
+        "OPENonOH_AAPS_Uploader" : {
+            "input" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/per_measurement_csv/",
+                "file_pattern" : "*entries*.csv"
+            },
+            "output" : {
+                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/",
+                "file_name" : "OPENonOH_AAPS_Uploader_per_day_with-self-duplicates.csv"
+            }
         }
 
 
@@ -100,7 +110,13 @@
             "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/",
             "in_file_name" : "OpenAPS_AAPS_Uploader_per_day_with-self-duplicates.csv",
             "out_file_name" : "OpenAPS_AAPS_Uploader_per_day.csv"
+        },
+        "OPENonOH_AAPS_Uploader" : {
+            "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/",
+            "in_file_name" : "OPENonOH_AAPS_Uploader_per_day_with-self-duplicates.csv",
+            "out_file_name" : "OPENonOH_AAPS_Uploader_per_day.csv"
         }
+
     },
 
     "duplicates_pairwise":
@@ -135,6 +151,33 @@
                 },
                 "output" : {
                     "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_AAPS_Uploader_OPENonOH.csv", "duplicates"]
+                }
+            },
+            {
+                "input" : {
+                    "ds1" : ["/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_NS_per_day.csv", "OPENonOH_AAPS_Uploader"],
+                    "ds2" : ["/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"]
+                },
+                "output" : {
+                    "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OPENonOH_AAPS_Uploader_OpenAPS_AAPS_Uploader.csv", "duplicates"]
+                } 
+            },
+            {
+                "input" : {
+                    "ds1" : ["/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
+                    "ds2" : ["/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"]
+                },
+                "output" : {
+                    "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.csv", "duplicates"]
+                }
+            },
+            {
+                "input" : {
+                    "ds1" : ["/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"],
+                    "ds2" : ["/home/reinhold/Daten/OPEN/OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH"]
+                },
+                "output" : {
+                    "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OPENonOH_AAPS_Uploader_OPENonOH.csv", "duplicates"]
                 }
             }
         ]
