@@ -7,8 +7,8 @@ import glob
 import fire
 import logging
 import datetime
+import numpy as np
 
-datasets = ["OpenAPS_NS", "OPENonOH", "OpenAPS_AAPS_Uploader"]
 
 """
 call as: python3 duplicates_preprocessing.py --dataset=[...] [--config_filename=IO.json] [--config_path="."]
@@ -21,6 +21,8 @@ Params = namedtuple("Params", ['head', 'tail', 'filename', 'first', 'second'])
 class duplicates_preprocessing(object):
     """
     process the BG data of OPENonOH
+    it is on the one hand a base class for the other combinations of (OpenAPS, OPENonOH) and (NightScout (NS), AAPS_Uploader) processing classes and 
+    it is the OPENonOH_NS preprocessing class
     """
 
     def __init__(self, config_filename : str, config_path : str, dataset : str = "OPENonOH", console_log_level = logging.INFO):
@@ -34,6 +36,7 @@ class duplicates_preprocessing(object):
         IO_json = json.load(f)
         self.dataset = dataset
         
+        datasets = [x for x in IO_json["duplicates_preprocessing"].keys() if "comment" and "logging" not in x]
         assert(self.dataset in datasets)
 
 
@@ -143,7 +146,7 @@ class duplicates_preprocessing(object):
         
 
     def extract_json_gz(self, dir_name):
-        # for the OpenAPS dataset
+        # for the OpenAPS_NS (nightscout) dataset
         # gunzip json.gz to json files
         # dir_name = "/home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/00749582/69754"
         # file_name = "entries__to_2018-06-07.json"
@@ -164,6 +167,46 @@ class duplicates_preprocessing(object):
             os.system(f"gunzip {f}")
             if i % 100 == 0: logging.info(f"{i}, {f}")
 
+    def extract_AAPS_Uploader_zip(self, dir_name, unzip_option : str = "-n -q"):
+        """
+        for the AAPS Uploader zip archives (both OpenAPS and OPENonOH)
+        $ unzip upload-num4-ver1-date20201019T153559-appid39dd3841ed5d4f2a820102fbd0a8880a.zip
+        Archive:  upload-num4-ver1-date20201019T153559-appid39dd3841ed5d4f2a820102fbd0a8880a.zip
+            inflating: BgReadings.json         
+            inflating: APSData.json            
+            inflating: TemporaryBasals.json    
+            inflating: Treatments.json         
+            inflating: TempTargets.json        
+            inflating: CareportalEvents.json   
+            inflating: ProfileSwitches.json    
+            inflating: ApplicationInfo.json    
+            inflating: Preferences.json        
+            inflating: DeviceInfo.json         
+            inflating: DisplayInfo.json        
+            inflating: UploadInfo.json
+
+        for the options see "man unzip": -n never overwrite existing files.  If a file already exists, skip the extraction of that file without prompting
+        """
+        search_string = os.path.join(dir_name,"**",f"*.zip")
+        logging.info(search_string)
+        # zipped and zipped_files are necessary, since the BgReadings.json and the upload...zip are in the same directory, 
+        # so in order to decide, which zip files to unzip, one needs to compare the directories, but in order to actually unzip, one needs the files
+        zipped = set([os.path.split(x)[0] for x in sorted(glob.glob(search_string, recursive=True))])  # just record the directory
+        zipped_files = set(sorted(glob.glob(search_string, recursive=True)))  # just record the directory
+        search_string2 = os.path.join(dir_name,"**",f"*BgReadings.json")
+        extracted = set([os.path.split(x)[0] for x in sorted(glob.glob(search_string2, recursive=True))]) 
+
+        
+
+        if len(zipped ^ extracted) > 0:
+            logging.debug(f"zipped files without corresponding BgReadings.json file: {zipped - extracted}")
+            logging.debug(f"BgReadings.json files without zip file in the same directory: {extracted - zipped}")
+
+        for i, f in enumerate(zipped_files):
+            head, tail = os.path.split(f)
+            if head not in zipped - extracted: continue
+            os.system(f"unzip {unzip_option} {f} -d {head}")
+            if i % 100 == 0: logging.info(f"{i}, {f}")
 
     def kinds_of_files(self, dir_name):
         """
@@ -190,6 +233,8 @@ class duplicates_preprocessing(object):
         """
         loop through all available files and do the same thing on each file
         """
+        if "_NS" in self.dataset: self.extract_json_gz(self.in_dir_name)
+        elif "_AAPS_Uploader" in self.dataset: self.extract_AAPS_Uploader_zip(self.in_dir_name)
         file_types = self.kinds_of_files(self.in_dir_name)
         logging.info(file_types)
         self.all_entries_json2csv()
@@ -268,6 +313,24 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
     def __init__(self, config_filename : str, config_path : str, dataset = "OpenAPS_AAPS_Uploader", console_log_level = logging.INFO):
         super().__init__(config_filename, config_path, dataset, console_log_level)
 
+    def kinds_of_files(self, dir_name):
+        """
+        - determine different kinds of files: split filename by "_" and histogram them:
+        - output: {'file_info': 4912, 'devicestatus': 161, 'entries': 161, 'treatments': 161, 'profile': 162}
+        """
+        file_types = {}
+        for i, f in enumerate(glob.glob(os.path.join(f"{dir_name}","**", f"*.{self.file_ending}"), recursive=True)):
+            head, tail = os.path.split(f)
+            filename, _ = os.path.splitext(tail)
+
+            if filename not in file_types.keys():
+                file_types[filename] = 1
+            else:
+                file_types[filename] += 1
+
+        return file_types
+
+
 
     def one_json2csv(self, dir_name : str, infile_name : str, outfile_name : str):
         """
@@ -292,7 +355,11 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
                     # noise, 
                     row = ["1"]
                     row.extend([entry[column] for column in in_columns])
-                    row.append(datetime.datetime.utcfromtimestamp(int(entry["date"]*0.001)).strftime('%Y-%m-%d %H:%M:%S'))  # date is in msec
+                    # unix_timestamp in ms is a 13 digit number, in s it is a 10 digit number (in 2022)
+                    date_factor = 1.0
+                    if np.log10(entry["date"]) > 12 and np.log10(entry["date"]) < 13: 
+                        date_factor = 0.001
+                    row.append(datetime.datetime.utcfromtimestamp(int(entry["date"]*date_factor)).strftime('%Y-%m-%d %H:%M:%S'))  # date is in msec
                     data.append(row)
                 except KeyError as e:
                     if e in self.key_error_statistics.keys():
@@ -314,6 +381,7 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
     def all_entries_json2csv(self):
         """
         focus on AndroidAPS Uploader uploads: direct-sharing-396
+        in_dir_name: AndroidAPS_Uploader/ (see IO.json)
         """
         file_list = sorted(glob.glob(os.path.join(f"{self.in_dir_name}","**", "direct-sharing-396","**", "*BgReadings.json"), recursive=True))
         logging.info(f"number of files: {len(file_list)}")
@@ -327,8 +395,70 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
             sub_dirs = head[len(self.in_dir_name):]
             sub_dirs = sub_dirs.strip('/')
             dir_name_components = sub_dirs.split("/")
+            # first = 98120605, second = upload-num181-ver1-date20210322T001829-appid4bf04b5c787e4200a085419a8a32049f in 98120605/direct-sharing-396/upload-num181-ver1-date20210322T001829-appid4bf04b5c787e4200a085419a8a32049f/BgReadings.json
+            first, second = dir_name_components[0], dir_name_components[2]
+            if os.path.isfile(os.path.join(self.out_dir_name, first + "_entries_" + second + ".csv")): 
+                continue
+
+            params = Params(head, tail, filename, first, second)
+
+            if i%10==0: logging.info(", ".join([f"{x}: {params[i]}" for i,x in enumerate(params._asdict().keys())]))
+            try: 
+                self.one_json2csv(head, tail, first + "_entries_" + second + ".csv")
+                
+            except (ValueError, Exception) as e:
+                if e in self.error_statistics.keys():
+                    self.error_statistics[e] += 1
+                else:
+                    self.error_statistics[e] = 1
+
+class duplicates_preprocessing_OPENonOH_AAPS_Uploader(duplicates_preprocessing_OpenAPS_AAPS_Uploader):
+    """
+    OPENonOH AAPS_Uploader: direct-sharing-396
+    """
+    def __init__(self, config_filename : str, config_path : str, dataset = "OPENonOH_AAPS_Uploader", console_log_level = logging.INFO):
+        super().__init__(config_filename, config_path, dataset, console_log_level)
+
+
+    def kinds_of_files(self, dir_name):
+        """
+        - determine different kinds of files: split filename by "_" and histogram them:
+        - output: {'file_info': 4912, 'devicestatus': 161, 'entries': 161, 'treatments': 161, 'profile': 162}
+        """
+        file_types = {}
+        for i, f in enumerate(glob.glob(os.path.join(f"{dir_name}","**", f"*.{self.file_ending}"), recursive=True)):
+            head, tail = os.path.split(f)
+            filename, _ = os.path.splitext(tail)
+            filename_components = filename.split("_")
+            if filename_components[0] == "file":
+                filename_components[0] = filename_components[0] + "_" + filename_components[1]
+
+            if filename_components[0] not in file_types.keys():
+                file_types[filename_components[0]] = 1
+            else:
+                file_types[filename_components[0]] += 1
+
+        return file_types
+
+
+    def all_entries_json2csv(self):
+        """
+        focus on AndroidAPS Uploader uploads: 
+        """
+        file_list = sorted(glob.glob(os.path.join(f"{self.in_dir_name}","**", "*BgReadings.json"), recursive=True))
+        logging.info(f"number of files: {len(file_list)}")
+        logging.info(file_list[:3])  # head 
+        logging.info(file_list[-3:])  # and tail
+        for i, f in enumerate(file_list):
+            # if i<80: continue
+            head, tail = os.path.split(f)
+            if i%10==0: logging.info(f"{i}, {head}, {tail}")
+            filename, _ = os.path.splitext(tail)
+            sub_dirs = head[len(self.in_dir_name):]
+            sub_dirs = sub_dirs.strip('/')
+            dir_name_components = sub_dirs.split("/")
             # first = 98120605, second = upload-num181-ver1-date20210322T001829-appid4bf04b5c787e4200a085419a8a32049f in AndroidAPS_Uploader/98120605/direct-sharing-396/upload-num181-ver1-date20210322T001829-appid4bf04b5c787e4200a085419a8a32049f/BgReadings.json
-            first, second = dir_name_components[1], dir_name_components[3]
+            first, second = dir_name_components[0], dir_name_components[1]
             if os.path.isfile(os.path.join(self.out_dir_name, first + "_entries_" + second + ".csv")): 
                 continue
 
@@ -346,6 +476,7 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
 
 
 
+
 def main(dataset : str, config_filename : str = "IO.json", config_path : str = ".", console_log_level : str = "info"):
     if not console_log_level == "info":
         print("not yet implemented: requires translation of info to logging.INFO, etc.")
@@ -358,6 +489,9 @@ def main(dataset : str, config_filename : str = "IO.json", config_path : str = "
         dpp.loop()
     elif dataset == "OPENonOH":
         dpp = duplicates_preprocessing(config_filename, config_path)
+        dpp.loop()
+    elif dataset == "OPENonOH_AAPS_Uploader":
+        dpp = duplicates_preprocessing_OPENonOH_AAPS_Uploader(config_filename, config_path)
         dpp.loop()
     else: 
         logging.error("unknown dataset: {dataset}, should be one of ['OpenAPS_NS', 'OPENonOH', 'OpenAPS_AAPS_Uploader']")
