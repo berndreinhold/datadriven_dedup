@@ -8,7 +8,7 @@
                 "file_ending" : "json"
             },
             "output" : {
-                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_measurement/"
+                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/per_measurement_csv/"
             }
         },
         "OpenAPS_NS" : {
@@ -18,7 +18,7 @@
                 "file_ending" : "json"
             },
             "output" : {
-                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/csv_per_measurement/"
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/per_measurement_csv/"
             }
         },
         "OpenAPS_AAPS_Uploader" : {
@@ -28,7 +28,7 @@
                 "file_ending" : "json"
             },
             "output" : {
-                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/csv_per_measurement/",
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/per_measurement_csv/",
                 "columns" : ["noise", "sgv", "date", "dateString"]
             }
         },
@@ -41,7 +41,7 @@
     {
         "OPENonOH" : {
             "input" : {
-                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/csv_per_measurement/",
+                "dir_name" : "/home/reinhold/Daten/OPEN/OPENonOH_Data/per_measurement_csv/",
                 "file_pattern" : "*entries*.csv"
             },
             "output" : {
@@ -51,7 +51,7 @@
         },
         "OpenAPS_NS" : {
             "input" : {
-                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/csv_per_measurement/",
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/per_measurement_csv/",
                 "file_pattern" : "*entries*.csv"
             },
             "output" : {
@@ -61,7 +61,7 @@
         },
         "OpenAPS_AAPS_Uploader" : {
             "input" : {
-                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/csv_per_measurement/",
+                "dir_name" : "/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/per_measurement_csv/",
                 "file_pattern" : "*entries*.csv"
             },
             "output" : {
@@ -91,6 +91,35 @@
             "out_file_name" : "OpenAPS_AAPS_Uploader_per_day.csv"
         }
     },
+
+    "duplicates_pairwise":
+    {
+        "input0" : {
+            "comment" : "[dir_name, file_name, label]",
+            "ds1" : ["/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
+            "ds2" : ["/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
+        },
+        "output0" : {
+            "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader.csv", "duplicates"]
+        },
+
+        "input" : {
+            "ds1" : ["/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
+            "ds2" : ["/home/reinhold/Daten/OPEN/OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH"],
+        },
+        "output" : {
+            "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OPENonOH.csv", "duplicates"]
+        },
+
+        "input2" : {
+            "ds1" : ["/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
+            "ds2" : ["/home/reinhold/Daten/OPEN/OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH"],
+        },
+        "output2" : {
+            "duplicates" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_AAPS_Uploader_OPENonOH.csv", "duplicates"]
+        }
+    },
+    
 
     "duplicates_plot":
     {
