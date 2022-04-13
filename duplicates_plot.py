@@ -1,4 +1,5 @@
 #/usr/bin/env python3
+from cmath import nan
 import matplotlib.pyplot as plt
 import datetime
 import pandas as pd
@@ -7,7 +8,7 @@ import os
 import json
 import fire
 import pandasgui as pdg
-
+from numpy import nan
 
 """
 call as: python3 duplicates_plot.py [--config_filename=IO.json] [--config_path="."]
@@ -109,27 +110,49 @@ class duplicates_plot():
         2. calculate an arbitrary auto-incremental index to plot instead of user_id_ds1 and user_id_ds2
         """
         out = self.df["merged_all"]  # just an alias for easier readibility below
-
         out.loc[pd.isnull(out["user_id_ds2"]), "dataset"] = 1  # ds1
-        out.loc[pd.isnull(out["user_id_ds1"]), "dataset"] = 3  # ds2
-        out.loc[~(pd.isnull(out["user_id_ds2"]) | pd.isnull(out["user_id_ds1"])), "dataset"] = 2  # duplicates
+        out.loc[pd.isnull(out["user_id_ds1"]), "dataset"] = 2  # ds2
+        out.loc[~(pd.isnull(out["user_id_ds2"]) | pd.isnull(out["user_id_ds1"])), "dataset"] = 3  # duplicates
         out["dataset"] = out["dataset"].astype(int)
 
-        out = out.sort_values(by=["dataset", "user_id_ds1", "user_id_ds2", "date"])
-        
-        # determine an auto-incremental index "id" for plotting instead of the user_id_ds1, user_id_ds2
-        df_user_id = out[["dataset", "user_id_ds1", "user_id_ds2"]].groupby(["user_id_ds1", "user_id_ds2"], as_index=False, dropna=False).agg("count")    
-        df_user_id = df_user_id.sort_values(["user_id_ds1", "user_id_ds2"])
-        df_user_id["id"] = range(len(df_user_id))
-        
-        df_user_id = df_user_id[["id", "user_id_ds1", "user_id_ds2"]]  # drop the dataset variable, which was only necessary for proper sorting of values prior to calculating the "id"
-        
-        # merge the df_user_id with the out dataset
-        self.df["merged_all"] = out.merge(df_user_id, left_on=["user_id_ds1", "user_id_ds2"], right_on=["user_id_ds1", "user_id_ds2"], how="outer")
+        df_person_id = self.generate_person_id_table(out)
+        print(df_person_id)
+
+        # merge the df_person_id with the out dataset
+        self.df["merged_all"] = out.merge(df_person_id, left_on=["user_id_ds1", "user_id_ds2"], right_on=["user_id_ds1", "user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
         #print(self.df["merged_all"])
         self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False, dropna=False).agg("count")
+        #print(self.df["merged_all"])
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
-        #print("merged_all: ", len(self.df["merged_all"]))
+        print("merged_all: ", len(self.df["merged_all"]))
+
+    def generate_person_id_table(self, df):
+        df_person_id = df[df["dataset"]==3][["dataset", "user_id_ds1", "user_id_ds2"]]
+        print(df_person_id)
+        df_person_id = df_person_id.sort_values(["user_id_ds1", "user_id_ds2"]).drop_duplicates()
+        df_person_id["id"] = range(len(df_person_id))
+
+        # get the list of user_id_ds1 and user_id_ds2 that are duplicates.
+        # the goal here is to list all the unique persons, whether they have two user_ids from the two datasets or one
+        persons_ds1 = df[df.dataset==3]["user_id_ds1"].to_numpy().tolist()
+        persons_ds1 = set(persons_ds1)
+
+        data = []
+        # now check all days not in the duplicates dataset whether they are associated with persons already in the duplicates dataset.
+        for person_ds1 in df[df.dataset==1]["user_id_ds1"].to_numpy().tolist():
+            if person_ds1 not in persons_ds1: 
+                persons_ds1.add(person_ds1)
+                data.append([len(df_person_id), 1, person_ds1, nan])
+        
+        persons_ds2 = df[df.dataset==3]["user_id_ds2"].to_numpy().tolist()
+        persons_ds2 = set(persons_ds2)
+        for person_ds2 in df[df.dataset==2]["user_id_ds2"].to_numpy().tolist():
+            if person_ds2 not in persons_ds2: 
+                persons_ds2.add(person_ds2)
+                data.append([len(df_person_id), 2, nan, person_ds2])
+        pd.concat([df_person_id, pd.DataFrame(data)], axis=0)
+        return df_person_id
+
 
     def plot(self, pair_i):
         """
@@ -165,6 +188,9 @@ class duplicates_plot():
 
 
     def plot_one_dataset(self, ax, dataset, pair_i):
+        """
+        plot one dataframe identified by the dataset variable.
+        """
         # the data
         df = self.df["merged_all"] 
         x = df.loc[df["dataset"]==dataset, "date"].values
@@ -177,8 +203,11 @@ class duplicates_plot():
         ax.scatter(x,y, marker='s', s=1, c=colors[label_], label=f"{label_} ({len(x)} d)")
         
     def loop(self):
+        """
+        produces several plots, where one plot contains ds1, ds2 and their duplicates. They share a common x-axis range.
+        """
         for i, one_plot_config in enumerate(self.IO):
-            self.init_one_pair(i)  # determine min-, max-date across all datasets
+            self.init_one_pair(i)  # determine min-, max-date across all datasets, in order to have the same x-axis range regardless of the data per plot
 
         for i, one_plot_config in enumerate(self.IO):
             # print(i, one_plot_config)
@@ -190,7 +219,7 @@ class duplicates_plot():
 
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
-
+    print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     dp = duplicates_plot(config_filename, config_path)
     dp.loop()
 
