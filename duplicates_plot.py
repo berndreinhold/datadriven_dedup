@@ -205,7 +205,8 @@ class duplicates_plot():
         plt.tight_layout()
 
         print("saved figure: ", os.path.join(self.IO[pair_i]["img_path"][0], self.IO[pair_i]["img_path"][1]))
-        plt.savefig(os.path.join(self.IO[pair_i]["img_path"][0], self.IO[pair_i]["img_path"][1]), )
+        os.makedirs(self.IO[pair_i]["img_path"][0], exist_ok=True)
+        plt.savefig(os.path.join(self.IO[pair_i]["img_path"][0], self.IO[pair_i]["img_path"][1]))
 
 
     def plot_one_dataset(self, ax, dataset, pair_i):
