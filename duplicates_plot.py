@@ -118,9 +118,12 @@ class duplicates_plot():
         df_person_id = self.generate_person_id_table(out)
         print(df_person_id)
 
-        # merge the df_person_id with the out dataset
-        self.df["merged_all"] = out.merge(df_person_id, left_on=["user_id_ds1", "user_id_ds2"], right_on=["user_id_ds1", "user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
-        #print(self.df["merged_all"])
+        # merge the df_person_id with the out dataset in two steps, once on the user_id_ds1, then on the user_id_ds2
+        merged_part1 = out.merge(df_person_id, left_on=["user_id_ds1"], right_on=["user_id_ds1"], how="outer", suffixes = (None, "_person_id"))
+        self.df["merged_all"] = merged_part1 # .merge(df_person_id, left_on=["user_id_ds2"], right_on=["user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
+        # pdg.show(self.df["merged_all"])
+        print(self.df["merged_all"])
+        self.df["merged_all"].info()
         self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False, dropna=False).agg("count")
         #print(self.df["merged_all"])
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
@@ -128,29 +131,35 @@ class duplicates_plot():
 
     def generate_person_id_table(self, df):
         df_person_id = df[df["dataset"]==3][["dataset", "user_id_ds1", "user_id_ds2"]]
-        print(df_person_id)
-        df_person_id = df_person_id.sort_values(["user_id_ds1", "user_id_ds2"]).drop_duplicates()
-        df_person_id["id"] = range(len(df_person_id))
-
-        # get the list of user_id_ds1 and user_id_ds2 that are duplicates.
-        # the goal here is to list all the unique persons, whether they have two user_ids from the two datasets or one
-        persons_ds1 = df[df.dataset==3]["user_id_ds1"].to_numpy().tolist()
-        persons_ds1 = set(persons_ds1)
+        persons_ds1, persons_ds2 = set(), set()
+        if len(df_person_id) > 0:
+            print(df_person_id)
+            df_person_id = df_person_id.sort_values(["user_id_ds1", "user_id_ds2"]).drop_duplicates()
+            df_person_id["id"] = range(len(df_person_id))
+        
+            # get the list of user_id_ds1 and user_id_ds2 that are duplicates.
+            # the goal here is to list all the unique persons, whether they have two user_ids from the two datasets or one
+            persons_ds1 = df[df.dataset==3]["user_id_ds1"].to_numpy().tolist()
+            persons_ds1 = set(persons_ds1)
 
         data = []
         # now check all days not in the duplicates dataset whether they are associated with persons already in the duplicates dataset.
         for person_ds1 in df[df.dataset==1]["user_id_ds1"].to_numpy().tolist():
             if person_ds1 not in persons_ds1: 
                 persons_ds1.add(person_ds1)
-                data.append([len(df_person_id), 1, person_ds1, nan])
+                data.append([len(df_person_id) + len(data), 1, person_ds1, nan])
         
         persons_ds2 = df[df.dataset==3]["user_id_ds2"].to_numpy().tolist()
         persons_ds2 = set(persons_ds2)
         for person_ds2 in df[df.dataset==2]["user_id_ds2"].to_numpy().tolist():
             if person_ds2 not in persons_ds2: 
                 persons_ds2.add(person_ds2)
-                data.append([len(df_person_id), 2, nan, person_ds2])
-        pd.concat([df_person_id, pd.DataFrame(data)], axis=0)
+                data.append([len(df_person_id) + len(data), 2, nan, person_ds2])
+        if len(df_person_id) > 0:
+            pd.concat([df_person_id, pd.DataFrame(data, columns=["id", "dataset", "user_id_ds1", "user_id_ds2"])], axis=0)
+        else:
+            df_person_id = pd.DataFrame(data, columns=["id", "dataset", "user_id_ds1", "user_id_ds2"])
+        
         return df_person_id
 
 
