@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import glob
 import fire
-from preprocessing import datasets
 
 
 class duplicates_aggregation(object):
@@ -14,6 +13,7 @@ class duplicates_aggregation(object):
         IO_json = json.load(f)
         self.dataset = dataset
         
+        datasets = [x for x in IO_json["duplicates_aggregation"].keys() if "comment" and "logging" not in x]
         assert(self.dataset in datasets)
 
         self.json_input = IO_json["duplicates_aggregation"][self.dataset]["input"]
@@ -41,7 +41,7 @@ class duplicates_aggregation(object):
         """
         for i, f in enumerate(glob.glob(os.path.join(f"{self.in_dir_name}","**", self.file_pattern), recursive=True)):
             head, tail = os.path.split(f)
-            print(i, tail)
+            if i%10==0: print(i, tail)
             # df = pd.read_csv(f, header=0, parse_dates=[4], index_col=0)
             df = pd.read_csv(f, header=0, index_col=0)
             if len(df)<1:
