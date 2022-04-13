@@ -51,7 +51,6 @@ class duplicates_plot():
                 if "filename" in col:
                     self.df[ds][col] = self.df[ds][col].astype('string')
             if self.df[ds]["date"].min() is not pd.NaT:
-                self.min_date = min([self.df[ds]["date"].min(), self.min_date])
             if self.df[ds]["date"].max() is not pd.NaT:
                 self.max_date = max([self.df[ds]["date"].max(), self.max_date])
         # fix the data types that were loaded as the unspecific "object"
@@ -122,8 +121,10 @@ class duplicates_plot():
         #pdg.show(df_person_id)
 
         # merge the df_person_id with the out dataset in two steps, once on the user_id_ds1, then on the user_id_ds2
-        merged_part1 = out.merge(df_person_id, left_on=["user_id_ds1"], right_on=["user_id_ds1"], how="outer", suffixes = (None, "_person_id"))
-        self.df["merged_all"] = merged_part1 # .merge(df_person_id, left_on=["user_id_ds2"], right_on=["user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
+        merged_part1 = out[out["dataset"]==1].merge(df_person_id, left_on=["user_id_ds1"], right_on=["user_id_ds1"], how="outer", suffixes = (None, "_person_id"))
+        merged_part3 = out[out["dataset"]==3].merge(df_person_id, left_on=["user_id_ds1", "user_id_ds2"], right_on=["user_id_ds1", "user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
+        merged_part2 = out[out["dataset"]==2].merge(df_person_id, left_on=["user_id_ds2"], right_on=["user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
+        self.df["merged_all"] = pd.concat([merged_part1, merged_part2, merged_part3])  # .merge(df_person_id, left_on=["user_id_ds2"], right_on=["user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
         print(self.df["merged_all"])
         self.df["merged_all"].info()
 
