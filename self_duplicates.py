@@ -34,7 +34,7 @@ class self_duplicates(object):
         """
         f = open(os.path.join(config_path, config_filename))
         self.IO_json = json.load(f)["self_duplicates"]
-        self.datasets = self.IO_json.keys()
+        self.datasets = [x for x in self.IO_json.keys() if "comment" and "logging" not in x]
         self.sgv_columns = ["sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count"]  # sgv: single (?) glucose value (see json files)
 
         self.df = {}
