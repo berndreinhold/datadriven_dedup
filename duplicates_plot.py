@@ -1,5 +1,6 @@
 #/usr/bin/env python3
 from cmath import nan
+from operator import index
 import matplotlib.pyplot as plt
 import datetime
 import pandas as pd
@@ -40,6 +41,7 @@ class duplicates_plot():
 
     def init_one_pair(self, pair_i : int):
         self.df = {}
+        self.dataset_pair_index = pair_i  # in the IO.json a list of dataset pairs is given. This is the index, referring to the currently processed pair of datasets
         for ds in self.dataset:
             infile = self.IO[pair_i][ds]
             self.df[ds] = pd.read_csv(os.path.join(infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
@@ -116,14 +118,15 @@ class duplicates_plot():
         out["dataset"] = out["dataset"].astype(int)
 
         df_person_id = self.generate_person_id_table(out)
-        print(df_person_id)
+        #print(df_person_id)
+        #pdg.show(df_person_id)
 
         # merge the df_person_id with the out dataset in two steps, once on the user_id_ds1, then on the user_id_ds2
         merged_part1 = out.merge(df_person_id, left_on=["user_id_ds1"], right_on=["user_id_ds1"], how="outer", suffixes = (None, "_person_id"))
         self.df["merged_all"] = merged_part1 # .merge(df_person_id, left_on=["user_id_ds2"], right_on=["user_id_ds2"], how="outer", suffixes = (None, "_person_id"))
-        # pdg.show(self.df["merged_all"])
         print(self.df["merged_all"])
         self.df["merged_all"].info()
+
         self.df["merged_all"] = self.df["merged_all"].groupby(["date", "id", "dataset"], as_index=False, dropna=False).agg("count")
         #print(self.df["merged_all"])
         self.df["merged_all"] = self.df["merged_all"][["date", "id", "dataset"]]
@@ -142,6 +145,9 @@ class duplicates_plot():
             persons_ds1 = df[df.dataset==3]["user_id_ds1"].to_numpy().tolist()
             persons_ds1 = set(persons_ds1)
 
+            persons_ds2 = df[df.dataset==3]["user_id_ds2"].to_numpy().tolist()
+            persons_ds2 = set(persons_ds2)
+
         data = []
         # now check all days not in the duplicates dataset whether they are associated with persons already in the duplicates dataset.
         for person_ds1 in df[df.dataset==1]["user_id_ds1"].to_numpy().tolist():
@@ -149,17 +155,23 @@ class duplicates_plot():
                 persons_ds1.add(person_ds1)
                 data.append([len(df_person_id) + len(data), 1, person_ds1, nan])
         
-        persons_ds2 = df[df.dataset==3]["user_id_ds2"].to_numpy().tolist()
-        persons_ds2 = set(persons_ds2)
         for person_ds2 in df[df.dataset==2]["user_id_ds2"].to_numpy().tolist():
             if person_ds2 not in persons_ds2: 
                 persons_ds2.add(person_ds2)
                 data.append([len(df_person_id) + len(data), 2, nan, person_ds2])
         if len(df_person_id) > 0:
-            pd.concat([df_person_id, pd.DataFrame(data, columns=["id", "dataset", "user_id_ds1", "user_id_ds2"])], axis=0)
+            df_person_id = pd.concat([df_person_id, pd.DataFrame(data, columns=["id", "dataset", "user_id_ds1", "user_id_ds2"])], axis=0)
         else:
             df_person_id = pd.DataFrame(data, columns=["id", "dataset", "user_id_ds1", "user_id_ds2"])
         
+        #person duplicates:
+        outfilename, ext = os.path.splitext(self.IO[self.dataset_pair_index]["duplicates"][1])
+        fn_components = outfilename.split("_")
+        outfilename = [fn_components[0], "person_id"]
+        outfilename.extend(fn_components[1:])
+        outfilename = "_".join(outfilename)
+        df_person_id.to_csv(os.path.join(self.IO[self.dataset_pair_index]["duplicates"][0], outfilename + ext))
+
         return df_person_id
 
 
@@ -219,7 +231,8 @@ class duplicates_plot():
             self.init_one_pair(i)  # determine min-, max-date across all datasets, in order to have the same x-axis range regardless of the data per plot
 
         for i, one_plot_config in enumerate(self.IO):
-            # print(i, one_plot_config)
+            #if not i==1: continue
+            print(i, one_plot_config)
             self.init_one_pair(i)
             self.merge_with_duplicates_dataset()
             self.merge_all()
