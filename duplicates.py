@@ -61,19 +61,23 @@ class duplicates_pairwise():
         # group by statement has to return exactly one line, otherwise the selection criteria on diff_sgv_*-variables need to be tightened.
 
         df_duplicates_only = df.groupby(["diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count"]).agg(["count"])
-        if len(df_duplicates_only) > 1: 
+        df2 = df_duplicates_only  # just a bit more compact 
+        if len(df2) > 1: 
             columns = []
-            for col in df_duplicates_only.columns:
+            for col in df2.columns:
                 columns.append(f"{col[0]}_{col[1]}")
-            df_duplicates_only.columns = columns
-            df_duplicates_only.fillna(value=0, inplace=True)  #
-            df_duplicates_only.reset_index(inplace=True)
+            df2.columns = columns
+            df2.fillna(value=0, inplace=True)  #
+            df2.reset_index(inplace=True)
 
-            print(df_duplicates_only)
-            print("all diff*-entries in df_duplicates_only need to be very close to 0.")
-            print(type(df_duplicates_only[["diff_sgv_mean", "diff_sgv_std"]]))
-            print(type(df_duplicates_only["diff_sgv_mean"]))
-            if df_duplicates_only.any() > self.diff_svg_threshold: raise ValueError()
+            print(df2)
+            print("all diff*-entries in df2 need to be very close to 0.")
+            for col in df2.columns:
+                if "diff" not in col: continue
+                if (df2[col]*df2[col] > self.diff_svg_threshold).any(): 
+                    print(df2[col])
+                    print(df2[col]*df2[col] > self.diff_svg_threshold)
+                    raise ValueError(f"{col}^2 should be smaller than diff_svg_threshold ({self.diff_svg_threshold})")
 
         # get list of duplicates and the count of days
         df3_mod = df[['user_id_ds1', 'user_id_ds2','date']]
