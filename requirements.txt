@@ -2,3 +2,7 @@ pandas==1.4.1
 numpy==1.19.4
 pandasgui==0.2.13
 fire
+matplotlib-venn
+sklearn
+upsetplot
+seaborn
