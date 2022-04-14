@@ -1,9 +1,13 @@
 ```
-start date: 20.1.2022 (European dateformat)
+start date: 20.1.2022 (European date format)
 last edit: 14.4.2022
 author: Bernd Reinhold
 ```
 # README.md for analyzing the OPENonOH and OpenAPS data sets
+
+## links
+- [README2.md](README2.md) (general pipeline)
+- [OPEN_visualisations.md](OPEN_visualisations.md)
 
 ## process flow
 
@@ -61,9 +65,8 @@ Because for duplicates it just matters, that they are distinct datasets, while i
 ## naming conventions
 following: https://pythonguides.com/python-naming-conventions/
 
-functions and variables: snake case
-classes: camelCase, 
-	starting with a lowercase letter
+- functions and variables: snake case
+- classes: camelCase, starting with a lowercase letter
 
 ## Datasets
 

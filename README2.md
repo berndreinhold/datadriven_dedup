@@ -5,6 +5,10 @@ author: Bernd Reinhold
 ```
 # README too - README2.md describes the global pipeline
 
+## links
+- [README.md](README.md) (pairwise duplicates)
+- [OPEN_visualisations.md](OPEN_visualisations.md)
+
 ## process flow
 
 <img src="doc/ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
@@ -41,3 +45,7 @@ Then there are plots showing at a "person_counter vs. date"-level the pairwise d
 ## Other
 ### user_id, person_id, person_counter
 Explain the usage of different but closely related variables to identify persons and users in data.
+
+### FAQ
+- if you need to implement new ways of determining duplicates, then do it as part of [section 2](#2-find-pairwise-duplicate-entries-in-datasets)
+- if you want to add new datasets, you have to adjust the whole chain.
