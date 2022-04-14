@@ -1,5 +1,4 @@
 #/usr/bin/env python3
-from cmath import nan
 from operator import index
 import matplotlib.pyplot as plt
 import datetime
@@ -51,6 +50,7 @@ class duplicates_plot():
                 if "filename" in col:
                     self.df[ds][col] = self.df[ds][col].astype('string')
             if self.df[ds]["date"].min() is not pd.NaT:
+                self.min_date = min([self.df[ds]["date"].min(), self.min_date])
             if self.df[ds]["date"].max() is not pd.NaT:
                 self.max_date = max([self.df[ds]["date"].max(), self.max_date])
         # fix the data types that were loaded as the unspecific "object"
@@ -103,6 +103,13 @@ class duplicates_plot():
             right_on=["date", "user_id_ds1", "user_id_ds2"], how="outer")
         print("merged_all: ", len(self.df["merged_all"]))
 
+        #merged all dataset duplicates:
+        outfilename, ext = os.path.splitext(self.IO[self.dataset_pair_index]["duplicates"][1])
+        fn_components = outfilename.split("_")
+        outfilename = [fn_components[0], "merged_all"]
+        outfilename.extend(fn_components[1:])
+        outfilename = "_".join(outfilename)
+        self.df["merged_all"].to_csv(os.path.join(self.IO[self.dataset_pair_index]["duplicates"][0], outfilename + ext))
 
     def fine_tuning(self):
         """
