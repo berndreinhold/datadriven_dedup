@@ -1,6 +1,6 @@
 ```
-start date: 20.1.2022
-last edit: 28.2.2022
+start date: 20.1.2022 (European dateformat)
+last edit: 14.4.2022
 author: Bernd Reinhold
 ```
 # README.md for analyzing the OPENonOH and OpenAPS data sets
@@ -17,9 +17,7 @@ author: Bernd Reinhold
 - **csv_per_measurements** contains files, where one entry corresponds to one measurement of the sensor/device, etc.
 - **csv_per_day** contains files, where one entry corresponds to the aggregate per day
 
-Please create this data structure manually.
-
-**ToDo: need to create a directory structure as part of the preprocessing**
+The folder structure is created in the scripts, if they do not yet exist.
 
 ### dependencies
 ```
@@ -38,10 +36,12 @@ _Maybe one could also share these csv-files in the google drive?_
 
 Some statistics on the output is provided in [csv_statistics_count_days.txt](csv_statistics_count_days.txt): Total: more than 8 Million measurements
 
+This brings the different formats into one common format: csv file with noise, bg, date, dateString.
+
 ## 2. aggregation_step.ipynb: aggregate into statistics per days: mean, rms (or stddev), min, max, count
 Read the csv-files in csv_per_measurement as input.
 Output is one csv-file containing approx. 8000 lines, with the aggregate per days and statistical variables.
-(Aggregate per week is possible as well.)
+(The aggregation per day is a somewhat arbitrary choice. Since one has up to 285 measurements per day, the error on the statistical measures becomes small. For higher granularity the statistical error becomes bigger, increasing the likelihood of false positive duplicates. Aggregate per week would be possible as well.)
 
 _Paths need to be adjusted to your local environment._
 
@@ -54,6 +54,9 @@ A requirement here is that datetimes are consistent in both datasets, otherwise 
 False positives could arise if the threshold is chosen too loose.  
 
 _Paths need to be adjusted to your local environment._
+
+Here use the generic dataset_1,_2,_3 rather than the specific OpenAPS_NS (nightscout), OPENonOH, in the processing.
+Because for duplicates it just matters, that they are distinct datasets, while in the previous steps the different format specific to each dataset was relevant.
 
 ## naming conventions
 following: https://pythonguides.com/python-naming-conventions/
