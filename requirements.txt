@@ -6,3 +6,4 @@ matplotlib-venn
 sklearn
 upsetplot
 seaborn
+pytest
