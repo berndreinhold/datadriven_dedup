@@ -1,4 +1,7 @@
 {
+    "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+    "root_data_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/test/data",
+    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
     "duplicates_preprocessing":
     {
         "OPENonOH" : {
@@ -119,6 +122,7 @@
 
     },
 
+
     "duplicates_pairwise":
     {
         "comment" : "The diff_svg_threshold is quadratic, it is compared with (diff_svg_*)^2.",
@@ -182,7 +186,30 @@
             }
         ]
     },
+
     
+    "link_all_datasets":
+    {
+        "input" : {
+                "comment" : "[dir_name, file_name, label]",
+                "ds1" : ["/home/reinhold/Daten/OPEN/OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
+                "ds2" : ["/home/reinhold/Daten/OPEN/OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
+                "ds3" : ["/home/reinhold/Daten/OPEN/OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
+                "ds4" : ["/home/reinhold/Daten/OPEN/OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"],
+                "duplicates1" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader.csv", "OpenAPS_NS_OpenAPS_AAPS_Uploader"],
+                "duplicates2" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OPENonOH.csv", "OpenAPS_NS_OPENonOH"],
+                "duplicates3" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.csv", "OpenAPS_NS_OPENonOH_AAPS_Uploader"],
+                "duplicates4" : ["/home/reinhold/Daten/OPEN/", "duplicates_OPENonOH_AAPS_Uploader_OpenAPS_AAPS_Uploader.csv", "OPENonOH_AAPS_Uploader_OpenAPS_AAPS_Uploader"],
+                "duplicates5" : ["/home/reinhold/Daten/OPEN/", "duplicates_OPENonOH_AAPS_Uploader_OPENonOH.csv", "OPENonOH_AAPS_Uploader_OPENonOH"],
+                "duplicates6" : ["/home/reinhold/Daten/OPEN/", "duplicates_OpenAPS_AAPS_Uploader_OPENonOH.csv", "OpenAPS_AAPS_Uploader_OPENonOH"]
+            },
+        "output" : {
+            "per_user_id" : ["/home/reinhold/Daten/OPEN/", "data_per_user_id.csv", "per_user_id"],
+            "per_user_id_date" : ["/home/reinhold/Daten/OPEN/", "data_per_user_id_date.csv", "per_user_id_date"],
+            "comment" : "[dir_name, file_name, label]"
+        }
+
+    },
 
     "duplicates_plot":
     {
