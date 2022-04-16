@@ -34,6 +34,7 @@ class link_all_datasets():
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
+        self.root_data_dir_name = IO_json["root_data_dir_name"]
         self.duplicates_json = IO_json["link_all_datasets"]
         self.input = IO_json["link_all_datasets"]["input"]
         self.output = IO_json["link_all_datasets"]["output"]
@@ -53,7 +54,7 @@ class link_all_datasets():
             if "comment" in ds: continue
             if "duplicate" in ds: continue
             infile = self.input[ds]
-            self.df[ds] = pd.read_csv(os.path.join(infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
             self.df[ds]["user_id"] = self.df[ds]["user_id"].astype(int)  # fix the data types that were loaded as the unspecific "object"
             self.df[ds] = self.df[ds][["date", "user_id"]]
             self.df[ds]["label"] = infile[2]  # dataset or file label
@@ -65,7 +66,7 @@ class link_all_datasets():
             if "comment" in ds: continue
             if ds.startswith("ds"): continue
             infile = self.input[ds]
-            self.df[ds] = pd.read_csv(os.path.join(infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
             self.df[ds]['user_id_ds1'] = self.df[ds]['user_id_ds1'].astype(int)
             self.df[ds]['user_id_ds2'] = self.df[ds]['user_id_ds2'].astype(int)
             self.df[ds] = self.df[ds][["date", "user_id_ds1", "user_id_ds2"]]
@@ -126,7 +127,7 @@ class link_all_datasets():
         outfilename = [fn_components[0], "merged_all"]
         outfilename.extend(fn_components[1:])
         outfilename = "_".join(outfilename)
-        self.df["merged_all"].to_csv(os.path.join(self.IO[self.dataset_pair_index]["duplicates"][0], outfilename + ext))
+        self.df["merged_all"].to_csv(os.path.join(self.root_data_dir_name, self.IO[self.dataset_pair_index]["duplicates"][0], outfilename + ext))
 
     def fine_tuning(self):
         """
@@ -195,7 +196,7 @@ class link_all_datasets():
         outfilename = [fn_components[0], "person_id"]
         outfilename.extend(fn_components[1:])
         outfilename = "_".join(outfilename)
-        df_person_id.to_csv(os.path.join(self.IO[self.dataset_pair_index]["duplicates"][0], outfilename + ext))
+        df_person_id.to_csv(os.path.join(self.root_data_dir_name, self.IO[self.dataset_pair_index]["duplicates"][0], outfilename + ext))
 
         return df_person_id
 
