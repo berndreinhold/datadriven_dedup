@@ -15,11 +15,15 @@ call as: python3 link_all_datasets.py [--config_filename=IO.json] [--config_path
 
 create two tables linking all datasets: one with one entry per (user_id, date), another with one entry per user_id.
 these tables are the relevant output of this class: they are saved as csv-files (one per table).
+These tables are then the only input for plotting (duplicates_plot.py)
 """
 
 
 
 class link_all_datasets():
+    """
+    input: the per-day csv files as well as the pairwise duplicate files.
+    """
 
     def __init__(self, config_filename : str, config_path : str):
         """
@@ -30,33 +34,45 @@ class link_all_datasets():
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
-        self.duplicates_json = IO_json["duplicates_plot"]
-        self.IO = IO_json["duplicates_plot"]["IO"]
+        self.duplicates_json = IO_json["link_all_datasets"]
+        self.input = IO_json["link_all_datasets"]["input"]
+        self.output = IO_json["link_all_datasets"]["output"]
         self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is e.g. ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
 
-        # common min and max dates (on the x-axis) across all plots
-        self.min_date = pd.to_datetime("2100-12-31",format="%Y-%m-%d")
-        self.max_date = pd.to_datetime("1970-01-01",format="%Y-%m-%d")
+        self.df = {}  # dictionary of all the input dataframes
+        self.init_individual_datasets()
+        self.init_duplicate_datasets()
+        for key in self.df:
+            print(self.df[key])
 
-
-    def init_one_pair(self, pair_i : int):
-        self.df = {}
-        self.dataset_pair_index = pair_i  # in the IO.json a list of dataset pairs is given. This is the index, referring to the currently processed pair of datasets
-        for ds in self.dataset:
-            infile = self.IO[pair_i][ds]
+    def init_individual_datasets(self):
+        """
+        fill the dictionary of dataframes self.df, read from the csv files
+        """
+        for ds in self.input:
+            if "comment" in ds: continue
+            if "duplicate" in ds: continue
+            infile = self.input[ds]
             self.df[ds] = pd.read_csv(os.path.join(infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds]["user_id"] = self.df[ds]["user_id"].astype(int)  # fix the data types that were loaded as the unspecific "object"
+            self.df[ds] = self.df[ds][["date", "user_id"]]
+            self.df[ds]["label"] = infile[2]  # dataset or file label
+            self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
+        
+    def init_duplicate_datasets(self):
+        
+        for ds in self.input:
+            if "comment" in ds: continue
+            if ds.startswith("ds"): continue
+            infile = self.input[ds]
+            self.df[ds] = pd.read_csv(os.path.join(infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds]['user_id_ds1'] = self.df[ds]['user_id_ds1'].astype(int)
+            self.df[ds]['user_id_ds2'] = self.df[ds]['user_id_ds2'].astype(int)
+            self.df[ds] = self.df[ds][["date", "user_id_ds1", "user_id_ds2"]]
+            self.df[ds]["label"] = infile[2]  # dataset or file label
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
             # fix the data types that were loaded as the unspecific "object"
-            for col in self.df[ds].columns:
-                if "filename" in col:
-                    self.df[ds][col] = self.df[ds][col].astype('string')
-            if self.df[ds]["date"].min() is not pd.NaT:
-                self.min_date = min([self.df[ds]["date"].min(), self.min_date])
-            if self.df[ds]["date"].max() is not pd.NaT:
-                self.max_date = max([self.df[ds]["date"].max(), self.max_date])
-        # fix the data types that were loaded as the unspecific "object"
-        self.df["duplicates"]['user_id_ds1'] = self.df["duplicates"]['user_id_ds1'].astype(int)
-        
+            
         
 
     def merge_with_duplicates_dataset(self):
@@ -81,14 +97,14 @@ class link_all_datasets():
         print("ds1-duplicates: ", len(self.df['ds1_duplicates']))
         print("ds2-duplicates: ", len(self.df['ds2_duplicates']))
 
-        # focus just on the date, user_id_* variables
+        # focus just on the date, user_id_* variables, discard e.g. the diff_* variables
         self.df["ds1_duplicates"] = self.df[f"ds1_duplicates"][["date", "user_id_ds1", "user_id_ds2"]]
         self.df["ds2_duplicates"] = self.df[f"ds2_duplicates"][["date", "user_id_ds1", "user_id_ds2"]]  
         
     def merge_all(self):
         """
         input: 
-        the merged data frames ds1_duplicates and ds2_duplicates
+            all the individual dataframes as well as the duplicate frames loaded in the constructor
 
         output: 
         df["merged_all"] with entries being uniquely identified by date, user_id_ds1, user_id_ds2
@@ -188,13 +204,9 @@ class link_all_datasets():
         """
         produces several plots, where one plot contains ds1, ds2 and their duplicates. They share a common x-axis range.
         """
-        for i, one_plot_config in enumerate(self.IO):
-            self.init_one_pair(i)  # determine min-, max-date across all datasets, in order to have the same x-axis range regardless of the data per plot
-
-        for i, one_plot_config in enumerate(self.IO):
+        for i, one_plot_config in enumerate(self.input):
             #if not i==1: continue
             print(i, one_plot_config)
-            self.init_one_pair(i)
             self.merge_with_duplicates_dataset()
             self.merge_all()
             self.fine_tuning()
@@ -202,8 +214,8 @@ class link_all_datasets():
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
     print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
-    dp = duplicates_plot(config_filename, config_path)
-    dp.loop()
+    lads = link_all_datasets(config_filename, config_path)
+    #lads.loop()
 
 
 if __name__ == "__main__":
