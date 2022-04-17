@@ -124,14 +124,22 @@ class link_all_datasets():
                 dfs_merged["first_row"] = pd.merge(dfs_merged[input_ID][dupl_ids[0]], dfs_merged[input_ID][dupl_ids[1]], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
             elif input_ID==2: 
                 #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column= (f"user_id_{input_ID}",f"user_id_{input_ID}"))
+                print("TODO: fix this! 3-2")
                 dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column=f"user_id_{input_ID}")
 
         #for key in dfs_merged:
         #    print(key)
         #    pdg.show(dfs_merged[key])
-        pdg.show(dfs_merged["first_row"])
-        pdg.show(dfs_merged["second_row"])
-
+        dfs_merged["first_row"] = dfs_merged["first_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        #pdg.show(dfs_merged["first_row"])
+        outfilename, ext = os.path.splitext(self.output["per_user_id"][1])
+        dfs_merged["first_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_firstrow" + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_firstrow" + ext))
+        dfs_merged["second_row"] = dfs_merged["second_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        dfs_merged["second_row"]["person_id"] = range(len(dfs_merged["second_row"]))
+        #pdg.show(dfs_merged["second_row"])
+        dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
 
 
     # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
