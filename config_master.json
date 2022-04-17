@@ -9,7 +9,7 @@
                 "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
                 "ds2" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
                 "ds3" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
-                "ds4" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"],
+                "ds4" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"]
             },
         "output" : {
             "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
