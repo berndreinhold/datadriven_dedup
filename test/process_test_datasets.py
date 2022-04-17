@@ -4,6 +4,7 @@ import glob
 import logging
 import os
 import pandas as pd
+import pandasgui as pdg
 """
 
 """
@@ -80,5 +81,44 @@ def modify_one_per_day_file(filename : str):
     df["filename"] = df["user_id"].apply(lambda x: f"{x}_entries_file.csv")
     df.to_csv(filename)
 
+def main():
+    df1 = pd.read_csv("data/merge_test_case.csv", header=0, parse_dates=[1], index_col=None)
+    df2 = pd.read_csv("data/merge_test_case_conflict.csv", header=0, parse_dates=[1], index_col=None)
+
+    df_merged = pd.merge(df1, df2, how="outer", left_on="user_id_ds2", right_on="user_id_ds2")
+    
+    def get_the_right_value2(row, col_names : str):
+        x = row[col_names[0]]
+        y = row[col_names[1]]
+
+        # it is clear already from the dataframe selection that one of x or y are not NA
+        if pd.isna(x): return y
+        elif pd.isna(y): return x
+        else:
+            if x == y: return x
+            else: raise ValueError(f"{x} or {y} are not identical, even though they should be, if they are both not NA. row: {row}")
+            
+
+
+    # process all columns, that the right table brought in (the suffixed columns).
+    # give the suffixed colums their old name and merge them 
+    
+    #df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"])), "user_id_ds3"] = df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"])), ["user_id_ds3_x", "user_id_ds3_y"]].apply(lambda x: get_the_right_value(x[0],x[1]), axis=1)
+    df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"])), "user_id_ds3"] = df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"]))].apply(lambda row: get_the_right_value2(row, ["user_id_ds3_x", "user_id_ds3_y"]), axis=1)
+    pdg.show(df_merged)
+
+    # check for uniqueness
+    if not len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"]) == len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"].unique()):
+        count_all = len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"])
+        count_unique = len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"].unique())
+        #raise ValueError(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
+        print(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
+
+    # drop the columns from the merge:
+    df_merged = df_merged[["user_id_ds1_x", "user_id_ds1_y", "user_id_ds2", "user_id_ds3"]]
+
+    pdg.show(df_merged)
+
 if __name__ == "__main__":
-    main_per_day_files()
+    #main_per_day_files()
+    main()
