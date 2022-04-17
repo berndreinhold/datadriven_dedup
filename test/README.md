@@ -5,8 +5,15 @@ OPENonOH_AAPS_Uploader: dataset4
 
 The following files were used and a small subset of days was extracted, covering several user_ids with a few days for each user_id.
 
-# file mapping:
+# file mapping
+```bash
 mv OpenAPS_NS_per_day.csv dataset1_per_day.csv 
 etc.
+
 mv duplicates_OpenAPS_NS_OPENonOH.csv duplicates_dataset1_dataset2.csv
 etc.
+```
+
+# code
+see the process_test_datasets.py
+_WIP_
