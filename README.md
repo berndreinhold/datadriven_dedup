@@ -13,6 +13,14 @@ author: Bernd Reinhold
 
 <img src="doc/ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
 
+(generated from [process_flow.odp](doc/process_flow.odp))
+
+_needs update_
+
+## background
+- it should scale to an arbitrary number of datasets
+- you provide constraints through duplicate criteria (see pairwise)
+- subselections
 
 ## 0. preparation
 
@@ -29,7 +37,7 @@ pip3 install -r requirements.txt
 ```
 (requirements.txt was generated with `pipreqs .` + some manual adjustment)
 
-## 1. preprocessing step: `python3 preprocessing.py`
+## 1. preprocessing step: `python3 preprocessing.py` (per dataset)
 preprocessing.py takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files in the _csv_per_measurement_-subdirectory.
  
 _Possible improvement: only a subset of all variables is stored in the csv-output files, store all variables._
@@ -42,14 +50,19 @@ Some statistics on the output is provided in [csv_statistics_count_days.txt](csv
 
 This brings the different formats into one common format: csv file with noise, bg, date, dateString.
 
-## 2. aggregation_step.ipynb: aggregate into statistics per days: mean, rms (or stddev), min, max, count
+## 2. aggregation_step.ipynb: aggregate into statistics per days: mean, rms (or stddev), min, max, count (per dataset)
 Read the csv-files in csv_per_measurement as input.
 Output is one csv-file containing approx. 8000 lines, with the aggregate per days and statistical variables.
 (The aggregation per day is a somewhat arbitrary choice. Since one has up to 285 measurements per day, the error on the statistical measures becomes small. For higher granularity the statistical error becomes bigger, increasing the likelihood of false positive duplicates. Aggregate per week would be possible as well.)
 
 _Paths need to be adjusted to your local environment._
 
-## 3. duplicates: combine with the OpenAPS data file in a smart way.
+## 3. self-duplicates (per dataset)
+
+
+## 4. pairwise duplicates: combine with the OpenAPS data file in a smart way.
+<img src="doc/ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
+
 Basic idea: if the statistical variables per day are very __"similar"__ in both datasets (OpenAPS and OPENonOH), then these are duplicate candidates. A distance metric to define __"similar"__ needs to be worked out.
 
 The algorithm to detect duplicates applied here is a join by date between the Open Humans and the OpenAPS data commons dataset and then calculating the quadratic difference between the daily mean(plasma glucose), stddev, min, max and requiring a certain threshold.
