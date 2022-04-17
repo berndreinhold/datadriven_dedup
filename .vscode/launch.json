@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["config_tests_IO.json"]
+            "args": ["config_all_3files.json"]
         }
     ]
 }
