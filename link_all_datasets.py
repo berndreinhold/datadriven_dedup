@@ -1,13 +1,13 @@
 #/usr/bin/env python3
-from operator import index
-import matplotlib.pyplot as plt
-import datetime
+#from operator import index
+#import matplotlib.pyplot as plt
+#import datetime
 import pandas as pd
-import matplotlib.dates as mdates
+#import matplotlib.dates as mdates
 import os
 import json
 import fire
-import pandasgui as pdg
+#import pandasgui as pdg
 from numpy import nan
 
 """
@@ -41,10 +41,12 @@ class link_all_datasets():
         self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is e.g. ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
 
         self.df = {}  # dictionary of all the input dataframes
+        self.df_user_id_only = {}  # dictionary of all the input dataframes, but the user_ids only
         self.init_individual_datasets()
         self.init_duplicate_datasets()
         for key in self.df:
-            print(self.df[key])
+            #print(self.df[key])
+            print(key, len(self.df[key]))
 
     def init_individual_datasets(self):
         """
@@ -55,11 +57,12 @@ class link_all_datasets():
             if "duplicate" in ds: continue
             infile = self.input[ds]
             self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
-            self.df[ds]["user_id"] = self.df[ds]["user_id"].astype(int)  # fix the data types that were loaded as the unspecific "object"
+            self.df[ds]["user_id"] = self.df[ds]["user_id"].astype(int)
             self.df[ds] = self.df[ds][["date", "user_id"]]
             self.df[ds]["label"] = infile[2]  # dataset or file label
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
-        
+            self.df_user_id_only[ds]=self.df[ds][["user_id", "label"]].unique()
+
     def init_duplicate_datasets(self):
         
         for ds in self.input:
@@ -72,9 +75,65 @@ class link_all_datasets():
             self.df[ds] = self.df[ds][["date", "user_id_ds1", "user_id_ds2"]]
             self.df[ds]["label"] = infile[2]  # dataset or file label
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
-            # fix the data types that were loaded as the unspecific "object"
-            
+            # fix the data types that were loaded as the unspecific "object" - TODO: is this still an issue 
+            self.df_user_id_only[ds]=self.df[ds][["user_id_ds1", "user_id_ds2", "label"]].unique()
+
+    def use_not_na_value(self, row, col_names : str):
+        """
+        is called by df.apply(lambda row: use_not_na_value(row, [col_x, col_y])) below.
+        The two columns from the two merged table are suffixed by _x and _y by dataframe::merge())
+        Use one of the values from the two tables, that is not NA. It is clear already from the dataframe selection that one of x or y are not NA.
+        """
+        value_x = row[col_names[0]]
+        value_y = row[col_names[1]]
+
         
+        if pd.isna(value_x): return value_y
+        elif pd.isna(value_y): return value_x
+        else:
+            if value_x == value_y: return value_x
+            else: raise ValueError(f"{value_x} or {value_y} are not identical, even though they should be, if they are both not NA. row: {row}")
+    
+
+    def generate_user_id_only_table(self):
+        dfs, dfs_duplicates = [], []
+        dfs_merged = pd.DataFrame()
+
+        for key in sorted(self.df_user_id_only):
+            if not key.startswith("ds"): continue
+            for key_dupl in sorted(self.df_user_id_only):
+                if not "duplicates" in key_dupl: continue
+                dfs_merged = pd.merge(self.df_user_id_only[key], self.df_user_id_only[key_dupl], how="left", left_on="user_id", right_on=f"user_id_{key}", validate="one_to_one")
+
+
+    def merge_dataframes(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_column : str):
+        df_merged = pd.merge(df1, df2, how="outer", on=join_column)  #e.g. on="user_id_ds2"
+    
+        # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
+        
+        for col in set(df1.columns) & set(df2.colummns) - set([join_column]):
+            self.merge_dataframes_one_column(df_merged, col)
+
+        # give the suffixed colums their old name and merge them 
+        # drop the columns from the merge:
+        #df_merged = df_merged[["user_id_ds1_x", "user_id_ds1_y", "user_id_ds2", "user_id_ds3"]]
+        return df_merged
+
+    def merge_dataframes_one_column(self, df_merged : pd.DataFrame, col_name : str):
+        """
+        col_name is a column which is present in both the left and right dataset and that is not the column on which the join between the two datasets was performed.
+        """
+        #df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"])), "user_id_ds3"] = df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"])), ["user_id_ds3_x", "user_id_ds3_y"]].apply(lambda x: get_the_right_value(x[0],x[1]), axis=1)
+        df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"])), "user_id_ds3"] = df_merged.loc[(~pd.isna(df_merged["user_id_ds3_x"]) |  ~pd.isna(df_merged["user_id_ds3_y"]))].apply(lambda row: get_the_right_value2(row, ["user_id_ds3_x", "user_id_ds3_y"]), axis=1)
+
+        # check for uniqueness
+        if not len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"]) == len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"].unique()):
+            count_all = len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"])
+            count_unique = len(df_merged.loc[~pd.isna(df_merged["user_id_ds3"]), "user_id_ds3"].unique())
+            #raise ValueError(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
+            print(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
+
+
 
     def merge_with_duplicates_dataset(self):
         """
