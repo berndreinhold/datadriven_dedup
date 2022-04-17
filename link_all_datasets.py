@@ -58,6 +58,8 @@ class link_all_datasets():
             self.df[ds][f"label_{infile[3]}"] = infile[2]  # dataset or file label
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
             self.df_user_id_only[ds]=self.df[ds][[f"user_id_{infile[3]}", f"label_{infile[3]}"]].drop_duplicates()
+            self.df_user_id_only[ds]=self.df_user_id_only[ds][f"user_id_{infile[3]}"]
+            #self.df_user_id_only[ds]=self.df[ds][f"user_id_{infile[3]}"].unique()
 
     def init_duplicate_datasets(self):
         
@@ -73,10 +75,11 @@ class link_all_datasets():
             self.df[ds][f'user_id_{first_ds}'] = self.df[ds]['user_id_ds1'].astype(int)
             self.df[ds][f'user_id_{second_ds}'] = self.df[ds]['user_id_ds2'].astype(int)
             self.df[ds] = self.df[ds][["date", f"user_id_{first_ds}", f"user_id_{second_ds}"]]
-            self.df[ds][f"label_{id_dupl}"] = infile[2]  # dataset or file label
+            #self.df[ds][f"label_{id_dupl}"] = infile[2]  # dataset or file label
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
             # fix the data types that were loaded as the unspecific "object" - TODO: is this still an issue 
-            self.df_user_id_only[ds]=self.df[ds][[f"user_id_{first_ds}", f"user_id_{second_ds}", f"label_{id_dupl}"]].drop_duplicates()
+            # self.df_user_id_only[ds]=self.df[ds][[f"user_id_{first_ds}", f"user_id_{second_ds}", f"label_{id_dupl}"]].drop_duplicates()
+            self.df_user_id_only[ds]=self.df[ds][[f"user_id_{first_ds}", f"user_id_{second_ds}"]].drop_duplicates()
 
     def use_not_na_value(self, row, col_names : str):
         """
@@ -84,7 +87,6 @@ class link_all_datasets():
         The two columns from the two merged table are suffixed by _x and _y by dataframe::merge())
         Use one of the values from the two tables, that is not NA. It is clear already from the dataframe selection that one of x or y are not NA.
         """
-        print(row)
         value_x = row[col_names[0]]
         value_y = row[col_names[1]]
 
@@ -102,22 +104,54 @@ class link_all_datasets():
 
         for key in sorted(self.df_user_id_only):
             if not key.startswith("ds"): continue
-            input_label = int(self.input[key][3])  # e.g. "1", see config*.json-files
+            input_ID = int(self.input[key][3])  # e.g. "1", see config*.json-files
+        
+            dfs_merged[input_ID] = {}
+            dupl_ids = []
             for key_dupl in sorted(self.df_user_id_only):
                 if not "duplicates" in key_dupl: continue
                 id_dupl = self.input[key_dupl][3]  # e.g. "1-2", see config*.json-files
+                dupl_ids.append(id_dupl)
                 first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
                 first_ds, second_ds = int(first_ds), int(second_ds)
-                if not input_label == first_ds and not input_label == second_ds: continue  # no column match, do nothing
-                #dfs_merged = pd.merge(self.df_user_id_only[key], self.df_user_id_only[key_dupl], how="left", left_on="user_id", right_on=f"user_id_{key}", validate="one_to_one")
-                dfs_merged[(key, key_dupl)] = self.merge_dataframes(self.df_user_id_only[key], self.df_user_id_only[key_dupl], (f"user_id_{input_label}", f"user_id_{input_label}"))
+                if not input_ID == first_ds and not input_ID == second_ds: continue  # no column match, do nothing
+                dfs_merged[input_ID][id_dupl] = pd.merge(self.df_user_id_only[key], self.df_user_id_only[key_dupl], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
+                #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_only[key], self.df_user_id_only[key_dupl], f"user_id_{input_ID}")
 
-        for key in dfs_merged:
-            print(key)
-            pdg.show(dfs_merged[key])
 
-    def merge_dataframes(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_column : tuple):
-        df_merged = pd.merge(df1, df2, how="outer", left_on=join_column[0], right_on=join_column[1])  #e.g. on="user_id_ds2"
+            if input_ID==1: 
+                # merge the first row:
+                dfs_merged["first_row"] = pd.merge(dfs_merged[input_ID][dupl_ids[0]], dfs_merged[input_ID][dupl_ids[1]], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
+            elif input_ID==2: 
+                #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column= (f"user_id_{input_ID}",f"user_id_{input_ID}"))
+                dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column=f"user_id_{input_ID}")
+
+        #for key in dfs_merged:
+        #    print(key)
+        #    pdg.show(dfs_merged[key])
+        pdg.show(dfs_merged["first_row"])
+        pdg.show(dfs_merged["second_row"])
+
+
+
+    # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
+    #     df_merged = pd.merge(df, df_dupl, how="outer", on=join_column)  #e.g. on="user_id_ds2"
+    
+    #     # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
+    #     # transfer the user_id information from the "column with suffix"-pairs to their columns without suffix
+    #     for col in set(df.columns) & set(df_dupl.columns) - set([join_column]):
+    #         if col.startswith("label"): continue
+    #         self.merge_dataframes_one_column(df_merged, col)
+
+    #     # drop the suffixed columns from the merge, as their content has been transferred to the columns without suffix:
+    #     cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
+    #     df_merged = df_merged[cols]
+
+    #     return df_merged
+
+
+    def merge_dataframes(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_column : str) -> pd.DataFrame:
+        df_merged = pd.merge(df1, df2, how="outer", on=join_column)  #e.g. on="user_id_ds2"
     
         # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
         # transfer the user_id information from the "column with suffix"-pairs to their columns without suffix
@@ -126,16 +160,18 @@ class link_all_datasets():
             self.merge_dataframes_one_column(df_merged, col)
 
         # drop the suffixed columns from the merge, as their content has been transferred to the columns without suffix:
-        cols = [c for c in df_merged.columns if c.startswith("label") or not c.endswith("_x") or not c.endswith("_y")]
+        cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
         df_merged = df_merged[cols]
 
         return df_merged
 
+
+
     def merge_dataframes_one_column(self, df_merged : pd.DataFrame, col_name : str):
         """
+        this must be already the second step.
         col_name is a column which is present in both the left and right dataset and that is not the column on which the join between the two datasets was performed.
         """
-        print(df_merged.columns)
         #df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), [f"{col_name}_x", f"{col_name}_y"]].apply(lambda x: get_the_right_value(x[0],x[1]), axis=1)
         df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) | \
             ~pd.isna(df_merged[f"{col_name}_y"]))].apply(lambda row: self.use_not_na_value(row, [f"{col_name}_x", f"{col_name}_y"]), axis=1)
@@ -146,7 +182,7 @@ class link_all_datasets():
             count_all = len(df_merged.loc[~pd.isna(df_merged[col_name]), col_name])
             count_unique = len(df_merged.loc[~pd.isna(df_merged[col_name]), col_name].unique())
             #raise ValueError(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
-            print(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
+            print(f"values are not unique anymore in column '{col_name}': count(all): {count_all}, count(unique): {count_unique}")
 
 
 
