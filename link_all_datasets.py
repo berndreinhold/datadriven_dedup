@@ -45,6 +45,8 @@ class link_all_datasets_user_id_only():
             #print(self.df[key])
             print(key, len(self.df[key]))
 
+        self.out_df_user_id_only = pd.DataFrame()  # make the dataframe "per user_id" available throughout the class
+
     def init_individual_datasets(self):
         """
         fill the dictionary of dataframes self.df, read from the csv files
@@ -62,7 +64,6 @@ class link_all_datasets_user_id_only():
             self.df_user_id_only[ds]=self.df_user_id_only[ds][f"user_id_{infile[3]}"]
             #self.df_user_id_only[ds]=self.df[ds][f"user_id_{infile[3]}"].unique()
 
-        self.out_df = pd.DataFrame()  # make the dataframe "per user_id" available throughout the class
 
     def init_duplicate_datasets(self):
         
@@ -144,7 +145,7 @@ class link_all_datasets_user_id_only():
         dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
 
-        self.out_df = dfs_merged["second_row"]  # make it available throughout the class
+        self.out_df_user_id_only = dfs_merged["second_row"]  # make it available throughout the class
 
     # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
     #     df_merged = pd.merge(df, df_dupl, how="outer", on=join_column)  #e.g. on="user_id_ds2"
@@ -196,6 +197,45 @@ class link_all_datasets_user_id_only():
             #raise ValueError(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
             print(f"values are not unique anymore in column '{col_name}': count(all): {count_all}, count(unique): {count_unique}")
 
+class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
+    def __init__(self, config_filename : str, config_path : str):
+        super().__init__(config_filename, config_path)
+        self.out_df_user_id_date = pd.DataFrame()  # make the dataframe "per user_id_date" available throughout the class, it is the collection of all self.df_user_id_date-dataframes
+        self.df_user_id_date = {}  # dictionary of the individual datasets merged with self.out_df_user_id_only (thereby receiving the person_id-variable)
+
+    def generate_user_id_date_table(self):
+        """
+        - use the self.out_df_user_id_only table to generate the self.out_df_user_id_date-table
+        - add the person_id variable to all the individual datasets and duplicate datasets.
+        - concatenate/join/merge them, while avoiding duplicate entries.
+        """
+        for ds in self.input:
+            if "comment" in ds: continue
+            self.add_person_id_2_user_id_only_tables(ds)
+
+
+    def add_person_id_2_user_id_only_tables(self, ds):
+        # for duplicates
+        if "duplicates" in ds:
+            id_dupl = self.input[ds][3]  # e.g. "1-2", see config*.json-files
+            first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
+            first_ds, second_ds = int(first_ds), int(second_ds)
+            join_columns = [f"user_id_{first_ds}", f"user_id_{second_ds}"]
+            self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_columns)  #e.g. on="user_id_ds2"
+            cols = ["date", "person_id"]
+            cols.extend(join_columns)
+            self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
+        # for individual datasets:
+        elif ds.startswith("ds"): 
+            id_dupl = self.input[ds][3]  # e.g. "1", see config*.json-files
+            join_column = f"user_id_{id_dupl}"
+            self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_column)  #e.g. on="user_id_ds2"
+            cols = ["date", "person_id"]
+            cols.append(join_column)
+            self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
+        else:
+            raise KeyError(f"{ds} is an unexpected key.")
+        print(self.df_user_id_date[ds])
 
 class legacy():
     def merge_with_duplicates_dataset(self):
@@ -337,8 +377,9 @@ class legacy():
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
     print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
-    lads = link_all_datasets_user_id_only(config_filename, config_path)
+    lads = link_all_datasets_user_id_date(config_filename, config_path)
     lads.generate_user_id_only_table()
+    lads.generate_user_id_date_table()
     #lads.loop()
 
 
