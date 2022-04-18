@@ -16,9 +16,10 @@ These tables are then the only input for plotting (duplicates_plot.py)
 
 
 
-class link_all_datasets():
+class link_all_datasets_user_id_only():
     """
     input: the per-day csv files as well as the pairwise duplicate files.
+    output: a table with person_ids and user_ids in each dataset/uploader pair, aligned where the duplicate files indicate matching user_ids across dataset/uploader pairs.
     """
 
     def __init__(self, config_filename : str, config_path : str):
@@ -34,7 +35,7 @@ class link_all_datasets():
         self.duplicates_json = IO_json["link_all_datasets"]
         self.input = IO_json["link_all_datasets"]["input"]
         self.output = IO_json["link_all_datasets"]["output"]
-        self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is e.g. ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
+        #self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is e.g. ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
 
         self.df = {}  # dictionary of all the input dataframes
         self.df_user_id_only = {}  # dictionary of all the input dataframes, but the user_ids only
@@ -60,6 +61,8 @@ class link_all_datasets():
             self.df_user_id_only[ds]=self.df[ds][[f"user_id_{infile[3]}", f"label_{infile[3]}"]].drop_duplicates()
             self.df_user_id_only[ds]=self.df_user_id_only[ds][f"user_id_{infile[3]}"]
             #self.df_user_id_only[ds]=self.df[ds][f"user_id_{infile[3]}"].unique()
+
+        self.out_df = pd.DataFrame()  # make the dataframe "per user_id" available throughout the class
 
     def init_duplicate_datasets(self):
         
@@ -141,6 +144,7 @@ class link_all_datasets():
         dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
 
+        self.out_df = dfs_merged["second_row"]  # make it available throughout the class
 
     # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
     #     df_merged = pd.merge(df, df_dupl, how="outer", on=join_column)  #e.g. on="user_id_ds2"
@@ -193,7 +197,7 @@ class link_all_datasets():
             print(f"values are not unique anymore in column '{col_name}': count(all): {count_all}, count(unique): {count_unique}")
 
 
-
+class legacy():
     def merge_with_duplicates_dataset(self):
         """
         input: the three data frames "OpenAPS", "OPENonOH", "duplicates"
@@ -333,7 +337,7 @@ class link_all_datasets():
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
     print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
-    lads = link_all_datasets(config_filename, config_path)
+    lads = link_all_datasets_user_id_only(config_filename, config_path)
     lads.generate_user_id_only_table()
     #lads.loop()
 
