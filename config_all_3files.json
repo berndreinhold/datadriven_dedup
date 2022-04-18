@@ -8,17 +8,35 @@
                 "comment" : "[dir_name, file_name, label, id], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
                 "comment2" : "id is used to determine matching columns in the individual dataset and the duplicate files, therefore '1-2' has to match with '1' and '2' in the ds1. ",
                 "comment3" : "label is used in plotting.",
-                "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS", "1"],
-                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS", "2"],
-                "ds3" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader", "3"],
-                "duplicates1" : ["", "duplicates_OpenAPS_NS_OPENonOH.csv", "OpenAPS_NS_OPENonOH", "1-2"],
-                "duplicates2" : ["", "duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.csv", "OpenAPS_NS_OPENonOH_AAPS_Uploader", "1-3"],
-                "duplicates3" : ["", "duplicates_OPENonOH_AAPS_Uploader_OPENonOH.csv", "OPENonOH_AAPS_Uploader_OPENonOH", "3-2"]
+                "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS (NS)", "1"],
+                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH (NS)", "2"],
+                "ds3" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH (AAPS-Uploader)", "3"],
+                "duplicates1" : ["", "duplicates_OpenAPS_NS_OPENonOH.csv", "OpenAPS (NS)-OPENonOH", "1-2"],
+                "duplicates2" : ["", "duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.csv", "OpenAPS (NS)-OPENonOH (AAPS-Uploader)", "1-3"],
+                "duplicates3" : ["", "duplicates_OPENonOH_AAPS_Uploader_OPENonOH.csv", "OPENonOH (AAPS-Uploader)-OPENonOH (NS)", "3-2"]
             },
         "output" : {
             "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
             "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        }
+    },
+    "upset_plot": {
+        "input" : {
+            "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
+            "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
+            "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+            "comment2" : "this input is the output of the previous section (link_all_datasets)"
+        },
+        "output" : {
+            "per_user_id" : ["", "Duplicate_persons_data_per_user_id.png", "persons in the respective datasets"],
+            "per_user_id_date" : ["", "Duplicate_persons_data_per_user_id_date.png", "person-days in the respective datasets"],
+            "comment" : "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        },
+        "dataset_labels": {
+            "1" : "OpenAPS (NS)",
+            "2" : "OPENonOH (NS)",
+            "3" : "OPENonOH (AAPS-Uploader)"
         }
     },
     "duplicates_plot":
