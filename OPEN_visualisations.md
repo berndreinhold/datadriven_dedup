@@ -32,6 +32,8 @@ Each entry was kept only once and the others were removed before proceeding furt
 <img src="doc/duplicate_persons.png" alt="duplicate_persons" />
 
 ### UpSetPlots
+<img src="doc/Duplicate_persons_data_per_user_id_date.png" alt="Duplicate_persons_data_per_user_id_date"/>
+<img src="doc/Duplicate_persons_data_per_user_id.png" alt="Duplicate_persons_data_per_user_id" />
 
 ## 3. Plots: person_count vs. date (pairwise)
 <img src="doc/Duplicates_OpenAPS_AAPS_Uploader_OPENonOH.png" alt="Duplicates_OpenAPS_AAPS_Uploader_OPENonOH" />
