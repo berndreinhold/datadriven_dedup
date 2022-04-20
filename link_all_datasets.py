@@ -103,6 +103,10 @@ class link_all_datasets_user_id_only():
     
 
     def generate_user_id_only_table(self):
+        """
+        TODO: generalize to 4 files and their duplicates.
+        TODO: (optional) generalize to N files and their duplicates.
+        """
         dfs, dfs_duplicates = [], []
         dfs_merged = {}  # dictionary of merged data frames
 
@@ -122,7 +126,6 @@ class link_all_datasets_user_id_only():
                 dfs_merged[input_ID][id_dupl] = pd.merge(self.df_user_id_only[key], self.df_user_id_only[key_dupl], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
                 #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_only[key], self.df_user_id_only[key_dupl], f"user_id_{input_ID}")
 
-
             if input_ID==1: 
                 # merge the first row:
                 dfs_merged["first_row"] = pd.merge(dfs_merged[input_ID][dupl_ids[0]], dfs_merged[input_ID][dupl_ids[1]], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
@@ -130,6 +133,9 @@ class link_all_datasets_user_id_only():
                 #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column= (f"user_id_{input_ID}",f"user_id_{input_ID}"))
                 print("TODO: fix this! 3-2")
                 dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column=f"user_id_{input_ID}")
+            elif input_ID==3: 
+                dfs_merged["third_row"] = self.merge_dataframes(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_column=f"user_id_{input_ID}")
+
 
         #for key in dfs_merged:
         #    print(key)
@@ -139,13 +145,21 @@ class link_all_datasets_user_id_only():
         outfilename, ext = os.path.splitext(self.output["per_user_id"][1])
         dfs_merged["first_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_firstrow" + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_firstrow" + ext))
+
         dfs_merged["second_row"] = dfs_merged["second_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
         dfs_merged["second_row"]["person_id"] = range(len(dfs_merged["second_row"]))
         #pdg.show(dfs_merged["second_row"])
-        dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
-        print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
+        dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_secondrow" + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_secondrow" + ext))
 
-        self.out_df_user_id_only = dfs_merged["second_row"]  # make it available throughout the class
+
+        dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
+        #pdg.show(dfs_merged["third_row"])
+        dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
+        self.out_df_user_id_only = dfs_merged["third_row"]  # make it available throughout the class
+
 
     # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
     #     df_merged = pd.merge(df, df_dupl, how="outer", on=join_column)  #e.g. on="user_id_ds2"
@@ -182,8 +196,10 @@ class link_all_datasets_user_id_only():
 
     def merge_dataframes_one_column(self, df_merged : pd.DataFrame, col_name : str):
         """
+        Is called by merge_dataframes()
         this must be already the second step.
         col_name is a column which is present in both the left and right dataset and that is not the column on which the join between the two datasets was performed.
+        the column is therefore suffixed with pandas default suffices (_x, _y)
         """
         #df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), [f"{col_name}_x", f"{col_name}_y"]].apply(lambda x: get_the_right_value(x[0],x[1]), axis=1)
         df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) | \
@@ -203,7 +219,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         self.out_df_user_id_date = pd.DataFrame()  # make the dataframe "per user_id_date" available throughout the class, it is the collection of all self.df_user_id_date-dataframes
         self.df_user_id_date = {}  # dictionary of the individual datasets merged with self.out_df_user_id_only (thereby receiving the person_id-variable)
 
-    def generate_user_id_date_table(self):
+    def generate_user_id_date_table(self, save : bool = False):
         """
         - use the self.out_df_user_id_only table to generate the self.out_df_user_id_date-table
         - add the person_id variable to all the individual datasets and duplicate datasets.
@@ -212,9 +228,15 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         for ds in self.input:
             if "comment" in ds: continue
             self.add_person_id_2_user_id_only_tables(ds)
+            if save: 
+                self.df_user_id_date[ds].to_csv(f"test_{ds}.csv")
+                print(f"output file created: test_{ds}.csv")
+
+
 
 
     def add_person_id_2_user_id_only_tables(self, ds):
+        if len(self.out_df_user_id_only) < 1: raise ValueError("self.out_df_user_id_only table is not filled. Try calling generate_user_id_only_table() first.")
         # for duplicates
         if "duplicates" in ds:
             id_dupl = self.input[ds][3]  # e.g. "1-2", see config*.json-files
@@ -236,6 +258,9 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         else:
             raise KeyError(f"{ds} is an unexpected key.")
         print(self.df_user_id_date[ds])
+
+
+
 
 class legacy():
     def merge_with_duplicates_dataset(self):
@@ -379,7 +404,7 @@ def main(config_filename : str = "IO.json", config_path : str = "."):
     print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     lads = link_all_datasets_user_id_date(config_filename, config_path)
     lads.generate_user_id_only_table()
-    lads.generate_user_id_date_table()
+    lads.generate_user_id_date_table(True)
     #lads.loop()
 
 
