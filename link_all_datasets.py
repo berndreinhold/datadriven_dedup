@@ -192,6 +192,24 @@ class link_all_datasets_user_id_only():
 
         return df_merged
 
+    def merge_dataframes2(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_columns : tuple) -> pd.DataFrame:
+        # TODO: some form of decorator to mimick function overloading would be nicer
+        # TODO: merge expressive function name
+        df_merged = pd.merge(df1, df2, how="outer", on=join_columns)  #e.g. on="user_id_ds2"
+    
+        # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
+        # transfer the user_id information from the "column with suffix"-pairs to their columns without suffix
+        for col in set(df1.columns) & set(df2.columns) - set(join_columns):
+            if col.startswith("label"): continue
+            self.merge_dataframes_one_column(df_merged, col)
+
+        # drop the suffixed columns from the merge, as their content has been transferred to the columns without suffix:
+        cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
+        df_merged = df_merged[cols]
+
+        return df_merged
+
+
 
 
     def merge_dataframes_one_column(self, df_merged : pd.DataFrame, col_name : str):
@@ -221,7 +239,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
 
     def generate_user_id_date_table(self, save : bool = False):
         """
-        - use the self.out_df_user_id_only table to generate the self.out_df_user_id_date-table
+        - use the self.out_df_user_id_date table to generate the self.out_df_user_id_date-table
         - add the person_id variable to all the individual datasets and duplicate datasets.
         - concatenate/join/merge them, while avoiding duplicate entries.
         """
@@ -231,6 +249,61 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
             if save: 
                 self.df_user_id_date[ds].to_csv(f"test_{ds}.csv")
                 print(f"output file created: test_{ds}.csv")
+
+
+        dfs, dfs_duplicates = [], []
+        dfs_merged = {}  # dictionary of merged data frames
+
+        for key in sorted(self.df_user_id_date):
+            if not key.startswith("ds"): continue
+            input_ID = int(self.input[key][3])  # e.g. "1", see config*.json-files
+        
+            dfs_merged[input_ID] = {}
+            dupl_ids = []
+            for key_dupl in sorted(self.df_user_id_date):
+                if not "duplicates" in key_dupl: continue
+                id_dupl = self.input[key_dupl][3]  # e.g. "1-2", see config*.json-files
+                dupl_ids.append(id_dupl)
+                first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
+                first_ds, second_ds = int(first_ds), int(second_ds)
+                if not input_ID == first_ds and not input_ID == second_ds: continue  # no column match, do nothing
+                dfs_merged[input_ID][id_dupl] = pd.merge(self.df_user_id_date[key], self.df_user_id_date[key_dupl], how="outer", on=["date", "person_id", f"user_id_{input_ID}"], validate="one_to_one")
+                #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_date[key], self.df_user_id_date[key_dupl], f"user_id_{input_ID}")
+
+            if input_ID==1: 
+                # merge the first row:
+                dfs_merged["first_row"] = pd.merge(dfs_merged[input_ID][dupl_ids[0]], dfs_merged[input_ID][dupl_ids[1]], how="outer", on=["date", "person_id", f"user_id_{input_ID}"], validate="one_to_one")
+            elif input_ID==2: 
+                #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column= (f"user_id_{input_ID}",f"user_id_{input_ID}"))
+                print("TODO: fix this! 3-2")
+                dfs_merged["second_row"] = self.merge_dataframes2(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
+            elif input_ID==3: 
+                dfs_merged["third_row"] = self.merge_dataframes2(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
+
+
+        #for key in dfs_merged:
+        #    print(key)
+        #    pdg.show(dfs_merged[key])
+        dfs_merged["first_row"] = dfs_merged["first_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        #pdg.show(dfs_merged["first_row"])
+        outfilename, ext = os.path.splitext(self.output["per_user_id_date"][1])
+        dfs_merged["first_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_firstrow" + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_firstrow" + ext))
+
+        dfs_merged["second_row"] = dfs_merged["second_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        dfs_merged["second_row"]["person_id"] = range(len(dfs_merged["second_row"]))
+        #pdg.show(dfs_merged["second_row"])
+        dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
+
+
+        dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
+        #pdg.show(dfs_merged["third_row"])
+        dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
+        print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
+        self.out_df_user_id_date = dfs_merged["third_row"]  # make it available throughout the class
+
 
 
 
