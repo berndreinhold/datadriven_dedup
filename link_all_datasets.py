@@ -278,7 +278,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
                 print("TODO: fix this! 3-2")
                 dfs_merged["second_row"] = self.merge_dataframes2(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
             elif input_ID==3: 
-                dfs_merged["third_row"] = self.merge_dataframes2(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
+                dfs_merged["third_row"] = self.merge_dataframes2b(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
 
 
         #for key in dfs_merged:
