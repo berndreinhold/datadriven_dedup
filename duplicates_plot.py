@@ -242,10 +242,10 @@ class duplicates_plot():
         for i, one_plot_config in enumerate(self.IO):
             #if not i==1: continue
             print(i, one_plot_config)
-            self.init_one_pair(i)
-            self.merge_with_duplicates_dataset()
-            self.merge_all()
-            self.fine_tuning()
+            #self.init_one_pair(i)
+            #self.merge_with_duplicates_dataset()
+            #self.merge_all()
+            #self.fine_tuning()
             self.plot(i)
 
 
