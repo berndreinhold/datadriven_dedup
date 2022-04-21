@@ -21,22 +21,27 @@
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
-    "upset_plot": {
+    "plots": {
         "input" : {
             "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
             "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
             "comment2" : "this input is the output of the previous section (link_all_datasets)"
         },
-        "output" : {
-            "per_user_id" : ["", "Duplicate_persons_data_per_user_id.png", "persons in the respective datasets"],
-            "per_user_id_date" : ["", "Duplicate_persons_data_per_user_id_date.png", "person-days in the respective datasets"],
-            "comment" : "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
-        },
         "dataset_labels": {
             "1" : "OpenAPS (NS)",
             "2" : "OPENonOH (NS)",
             "3" : "OPENonOH (AAPS-Uploader)"
+        },
+        "upsetplot_output" : {
+            "per_user_id" : ["", "upsetplot_per_user_id.png", "persons in the respective datasets"],
+            "per_user_id_date" : ["", "upsetplot_per_user_id_date.png", "person-days in the respective datasets"],
+            "comment" : "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        },
+        "venn3_output" : {
+            "per_user_id" : ["", "venn3_per_user_id.png", "persons in the respective datasets"],
+            "per_user_id_date" : ["", "venn3_per_user_id_date.png", "person-days in the respective datasets"],
+            "comment" : "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
     "duplicates_plot":
