@@ -27,15 +27,15 @@ OPENonOH_AAPS_Uploader without duplicate (date, user_id): 11928 days
 Certain day/user-id pairs were more than 2 and up to 8 times in the respective datasets.
 Each entry was kept only once and the others were removed before proceeding further.
 
-## 2. Venn Diagrams and [UpSetPlot](https://pypi.org/project/UpSetPlot/)s
-<img src="doc/duplicate_days.png" alt="duplicate_days"/>
-<img src="doc/duplicate_persons.png" alt="duplicate_persons" />
+## 2. Venn Diagrams
+<img src="doc/venn3_per_user_id_date.png" width=66% alt="venn3_days"/>
+<img src="doc/venn3_per_user_id.png" width=66% alt="venn3_persons" />
 
-### UpSetPlots
-<img src="doc/Duplicate_persons_data_per_user_id_date.png" alt="Duplicate_persons_data_per_user_id_date"/>
-<img src="doc/Duplicate_persons_data_per_user_id.png" alt="Duplicate_persons_data_per_user_id" />
+## 3. [UpSetPlot](https://pypi.org/project/UpSetPlot/)s
+<img src="doc/upsetplot_per_user_id_date.png" width=66% alt="upsetplot_per_user_id_date"/>
+<img src="doc/upsetplot_per_user_id.png" width=66% alt="upsetplot_per_user_id" />
 
-## 3. Plots: person_count vs. date (pairwise)
+## 4. Plots: person_count vs. date (pairwise)
 <img src="doc/Duplicates_OpenAPS_AAPS_Uploader_OPENonOH.png" alt="Duplicates_OpenAPS_AAPS_Uploader_OPENonOH" />
 <img src="doc/Duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader.png" alt="Duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader" />
 <img src="doc/Duplicates_OpenAPS_NS_OPENonOH.png" alt="Duplicates_OpenAPS_NS_OPENonOH" />
