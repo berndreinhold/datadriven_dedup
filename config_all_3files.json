@@ -44,49 +44,26 @@
             "comment" : "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
-    "duplicates_plot":
+    "pairwise_plots":
     {
-        "IO" : [
-            {
-                "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
-                "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
-                "ds2" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
-                "duplicates" : ["", "duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader.csv", "duplicates"],
-                "img_path": ["", "Duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader.png"]
+        "input" : ["", "data_per_user_id_date.csv"],
+        "output" : [
+            { 
+                "data" : ["ds1", "ds2", "duplicates1"], 
+                "img_path": ["", "Duplicates_OpenAPS_NS_OPENonOH.png"],
+                "comment" : "the list of keys in 'data' refer back to section 'link_all_datasets' -> 'input' and 'plots' -> 'dataset_labels'"
             },
             {
-                "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
-                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
-                "duplicates" : ["", "duplicates_OpenAPS_NS_OPENonOH.csv", "duplicates"],
-                "img_path": ["", "Duplicates_OpenAPS_NS_OPENonOH.png"]
+                "data" : ["ds1", "ds3", "duplicates2"],
+                "img_path" : ["", "Duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.png"]
             },
             {
-                "ds1" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
-                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
-                "duplicates" : ["", "duplicates_OpenAPS_AAPS_Uploader_OPENonOH.csv", "duplicates"],
-                "img_path": ["", "Duplicates_OpenAPS_AAPS_Uploader_OPENonOH.png"]
+                "data" : ["ds2", "ds3", "duplicates3"],
+                "img_path" : ["", "duplicates_OPENonOH_AAPS_Uploader_OPENonOH.png"]
             },
-
-            {
-                "ds1" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"],
-                "ds2" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
-                "duplicates" : ["", "duplicates_OPENonOH_AAPS_Uploader_OpenAPS_AAPS_Uploader.csv", "duplicates"],
-                "img_path": ["", "Duplicates_OPENonOH_AAPS_Uploader_OpenAPS_AAPS_Uploader.png"]
-            },
-            {
-                "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
-                "ds2" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"],
-                "duplicates" : ["", "duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.csv", "duplicates"],
-                "img_path": ["", "Duplicates_OpenAPS_NS_OPENonOH_AAPS_Uploader.png"]
-            },
-            {
-                "ds1" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"],
-                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
-                "duplicates" : ["", "duplicates_OPENonOH_AAPS_Uploader_OPENonOH.csv", "duplicates"],
-                "img_path": ["", "Duplicates_OPENonOH_AAPS_Uploader_OPENonOH.png"]
-            }
+            { "comment" : "[dir_name, file_name], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'" }
         ],
-        "plot" : {
+        "plot_config" : {
             "title_prefix" : "duplicates between datasets",
             "colors" : {
                 "OpenAPS_NS": "green", 
@@ -98,6 +75,4 @@
             }  
         }
     }
-
-
 }
