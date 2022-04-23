@@ -10,9 +10,10 @@ import re
 """
 call as: python3 link_all_datasets.py [--config_filename=IO.json] [--config_path="."]
 
-create two tables linking all datasets: one with one entry per (user_id, date), another with one entry per user_id.
-these tables are the relevant output of this class: they are saved as csv-files (one per table).
-These tables are then the only input for plotting (duplicates_plot.py)
+Create two tables linking all datasets: one with one entry per (user_id, date), another with one entry per user_id.
+There is one class to create one table each.
+These tables are saved as csv-files (one per table).
+These tables are then the only input for plotting (pairwise_plot.py, upsetplot_one_df.ipynb, venn3_upsetplot.ipynb)
 """
 
 
@@ -20,15 +21,12 @@ These tables are then the only input for plotting (duplicates_plot.py)
 class link_all_datasets_user_id_only():
     """
     input: the per-day csv files as well as the pairwise duplicate files.
-    output: a table with person_ids and user_ids in each dataset/uploader pair, aligned where the duplicate files indicate matching user_ids across dataset/uploader pairs.
+    output: a table with person_ids and user_ids in each dataset/uploader pair (e.g. OpenAPS/nightscout), aligned where the duplicate files indicate matching user_ids across dataset/uploader pairs.
     """
 
     def __init__(self, config_filename : str, config_path : str):
         """
-        read a config file and populate file names and paths of three csv files:
-            - OpenAPS with key [user_id, date]
-            - OPENonOH with key [user_id, date]
-            - duplicates file containing the duplicates between the two data files with key [user_id_ds1, user_id_ds2, date]
+        read a config file and populate file names and paths of csv files of individual datasets and their tables of duplicates:
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
@@ -38,7 +36,6 @@ class link_all_datasets_user_id_only():
         self.input_individual = self.input["individual"]
         self.input_duplicate = self.input["duplicate"]
         self.output = IO_json["link_all_datasets"]["output"]
-        #self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is e.g. ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
 
         self.df = {}  # dictionary of all the input dataframes
         self.df_user_id_only = {}  # dictionary of all the input dataframes, but the user_ids only
@@ -52,7 +49,7 @@ class link_all_datasets_user_id_only():
 
     def init_individual_datasets(self):
         """
-        fill the dictionary of dataframes self.df, read from the csv files
+        fill the dictionary of dataframes self.df, read from the csv files of individual datasets
         """
         for ds in self.input_individual:
             if "comment" in ds: continue
@@ -69,7 +66,9 @@ class link_all_datasets_user_id_only():
 
 
     def init_duplicate_datasets(self):
-        
+        """
+        fill the dictionary of dataframes self.df, read from the csv files of duplicate datasets
+        """
         for ds in self.input_duplicate:
             if "comment" in ds: continue
             infile = self.input_duplicate[ds]
@@ -91,7 +90,7 @@ class link_all_datasets_user_id_only():
         """
         is called by df.apply(lambda row: use_not_na_value(row, [col_x, col_y])) below.
         The two columns from the two merged table are suffixed by _x and _y by dataframe::merge())
-        Use one of the values from the two tables, that is not NA. It is clear already from the dataframe selection that one of x or y are not NA.
+        Use one of the values from the two tables, that is not NA. It is clear already from the dataframe selection that exactly one of x or y are not NA.
         """
         value_x = row[col_names[0]]
         value_y = row[col_names[1]]
