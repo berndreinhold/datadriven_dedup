@@ -5,6 +5,7 @@ import json
 import fire
 import pandasgui as pdg
 from numpy import nan
+import re
 
 """
 call as: python3 link_all_datasets.py [--config_filename=IO.json] [--config_path="."]
@@ -34,6 +35,8 @@ class link_all_datasets_user_id_only():
         self.root_data_dir_name = IO_json["root_data_dir_name"]
         self.duplicates_json = IO_json["link_all_datasets"]
         self.input = IO_json["link_all_datasets"]["input"]
+        self.input_individual = self.input["individual"]
+        self.input_duplicate = self.input["duplicate"]
         self.output = IO_json["link_all_datasets"]["output"]
         #self.dataset = ["ds1", "duplicates", "ds2"]  # the sequence is e.g. ["OpenAPS", "duplicates", "OPENonOH"], so that the duplicates are drawn between the two datasets
 
@@ -51,10 +54,10 @@ class link_all_datasets_user_id_only():
         """
         fill the dictionary of dataframes self.df, read from the csv files
         """
-        for ds in self.input:
+        for ds in self.input_individual:
             if "comment" in ds: continue
-            if "duplicate" in ds: continue
-            infile = self.input[ds]
+            if "duplicate" in ds or re.match("[0-9]-[0-9]", ds): continue
+            infile = self.input_individual[ds]
             self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
             self.df[ds][f"user_id_{infile[3]}"] = self.df[ds]["user_id"].astype(int)
             self.df[ds] = self.df[ds][["date", f"user_id_{infile[3]}"]]
@@ -67,12 +70,11 @@ class link_all_datasets_user_id_only():
 
     def init_duplicate_datasets(self):
         
-        for ds in self.input:
+        for ds in self.input_duplicate:
             if "comment" in ds: continue
-            if ds.startswith("ds"): continue
-            infile = self.input[ds]
+            infile = self.input_duplicate[ds]
             self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
-            id_dupl = self.input[ds][3]  # e.g. "1-2", see config*.json-files
+            id_dupl = infile[3]  # e.g. "1-2", see config*.json-files
             first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
             first_ds, second_ds = int(first_ds), int(second_ds)
 
@@ -111,14 +113,14 @@ class link_all_datasets_user_id_only():
         dfs_merged = {}  # dictionary of merged data frames
 
         for key in sorted(self.df_user_id_only):
-            if not key.startswith("ds"): continue
-            input_ID = int(self.input[key][3])  # e.g. "1", see config*.json-files
+            if re.match("[0-9]-[0-9]", key): continue
+            input_ID = int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
         
             dfs_merged[input_ID] = {}
             dupl_ids = []
             for key_dupl in sorted(self.df_user_id_only):
-                if not "duplicates" in key_dupl: continue
-                id_dupl = self.input[key_dupl][3]  # e.g. "1-2", see config*.json-files
+                if len(key_dupl) < 3: continue
+                id_dupl = self.input_duplicate[key_dupl][3]  # e.g. "1-2", see config*.json-files
                 dupl_ids.append(id_dupl)
                 first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
                 first_ds, second_ds = int(first_ds), int(second_ds)
@@ -151,7 +153,6 @@ class link_all_datasets_user_id_only():
         #pdg.show(dfs_merged["second_row"])
         dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_secondrow" + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_secondrow" + ext))
-
 
         dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
         dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
@@ -239,11 +240,13 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
 
     def generate_user_id_date_table(self, save : bool = False):
         """
-        - use the self.out_df_user_id_date table to generate the self.out_df_user_id_date-table
+        - use the self.out_df_user_id table to generate the self.out_df_user_id_date-table
         - add the person_id variable to all the individual datasets and duplicate datasets.
         - concatenate/join/merge them, while avoiding duplicate entries.
         """
-        for ds in self.input:
+        all_keys = list(self.input_individual.keys())
+        all_keys.extend(self.input_duplicate.keys())
+        for ds in all_keys:
             if "comment" in ds: continue
             self.add_person_id_2_user_id_only_tables(ds)
             if save: 
@@ -255,14 +258,14 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         dfs_merged = {}  # dictionary of merged data frames
 
         for key in sorted(self.df_user_id_date):
-            if not key.startswith("ds"): continue
-            input_ID = int(self.input[key][3])  # e.g. "1", see config*.json-files
+            if re.match("[0-9]-[0-9]", key): continue  # there is a limit on 10x10 datasets to be linked because of this regular expression. "10-1" would not match this reg exp
+            input_ID = int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
         
             dfs_merged[input_ID] = {}
             dupl_ids = []
             for key_dupl in sorted(self.df_user_id_date):
-                if not "duplicates" in key_dupl: continue
-                id_dupl = self.input[key_dupl][3]  # e.g. "1-2", see config*.json-files
+                if len(key_dupl) < 3: continue
+                id_dupl = self.input_duplicate[key_dupl][3]  # e.g. "1-2", see config*.json-files
                 dupl_ids.append(id_dupl)
                 first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
                 first_ds, second_ds = int(first_ds), int(second_ds)
@@ -278,7 +281,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
                 print("TODO: fix this! 3-2")
                 dfs_merged["second_row"] = self.merge_dataframes2(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
             elif input_ID==3: 
-                dfs_merged["third_row"] = self.merge_dataframes2b(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
+                dfs_merged["third_row"] = self.merge_dataframes2(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
 
 
         #for key in dfs_merged:
@@ -296,23 +299,19 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
 
-
         dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
-        dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
+        #dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
         #pdg.show(dfs_merged["third_row"])
         dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
         self.out_df_user_id_date = dfs_merged["third_row"]  # make it available throughout the class
 
 
-
-
-
     def add_person_id_2_user_id_only_tables(self, ds):
         if len(self.out_df_user_id_only) < 1: raise ValueError("self.out_df_user_id_only table is not filled. Try calling generate_user_id_only_table() first.")
         # for duplicates
-        if "duplicates" in ds:
-            id_dupl = self.input[ds][3]  # e.g. "1-2", see config*.json-files
+        if re.match("[0-9]-[0-9]", ds):
+            id_dupl = self.input_duplicate[ds][3]  # e.g. "1-2", see config*.json-files
             first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
             first_ds, second_ds = int(first_ds), int(second_ds)
             join_columns = [f"user_id_{first_ds}", f"user_id_{second_ds}"]
@@ -321,8 +320,8 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
             cols.extend(join_columns)
             self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
         # for individual datasets:
-        elif ds.startswith("ds"): 
-            id_dupl = self.input[ds][3]  # e.g. "1", see config*.json-files
+        elif len(ds) < 3: 
+            id_dupl = self.input_individual[ds][3]  # e.g. "1", see config*.json-files
             join_column = f"user_id_{id_dupl}"
             self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_column)  #e.g. on="user_id_ds2"
             cols = ["date", "person_id"]
