@@ -19,7 +19,8 @@
     },
     "steps": {
         "single_dataset" :
-        [    
+        [   
+            "format the dataset columns properly",
             "generate_json",
             "preprocessing",
             "aggregation",
