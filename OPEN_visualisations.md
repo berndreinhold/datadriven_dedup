@@ -1,12 +1,12 @@
 ```
 start date: 14.4.2022 (European date format)
-last edit: 14.4.2022
+last edit: 23.4.2022
 author: Bernd Reinhold
 ```
 # OPEN dataset visualisation
 visualisation of the dataset sizes and duplicates in the specific use case of the [OPEN diabetes project](https://open-diabetes.eu/).
 
-_This is ongoing work, not a final result._
+_This is ongoing work, showing the current status, not a final result._
 
 ## links
 - [README.md](README.md) (pairwise duplicates)
@@ -35,9 +35,10 @@ Each entry was kept only once and the others were removed before proceeding furt
 <img src="doc/upsetplot_per_user_id_date.png" width=66% alt="upsetplot_per_user_id_date"/>
 <img src="doc/upsetplot_per_user_id.png" width=66% alt="upsetplot_per_user_id" />
 
-## 4. Plots: person_count vs. date (pairwise)
-<img src="doc/Duplicates_OpenAPS_AAPS_Uploader_OPENonOH.png" alt="Duplicates_OpenAPS_AAPS_Uploader_OPENonOH" />
-<img src="doc/Duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader.png" alt="Duplicates_OpenAPS_NS_OpenAPS_AAPS_Uploader" />
-<img src="doc/Duplicates_OpenAPS_NS_OPENonOH.png" alt="Duplicates_OpenAPS_NS_OPENonOH" />
+[Original article on UpSet plots](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6876017)
+## 4. Plots: person incremental counter vs. date (pairwise)
+<img src="doc/pairwise_plot_OPENonOH_AAPS_Uploader_OPENonOH.png" alt="pairwise_plot_OPENonOH_AAPS_Uploader_OPENonOH" />
+<img src="doc/pairwise_plot_OpenAPS_NS_OPENonOH_AAPS_Uploader.png" alt="pairwise_plot_OpenAPS_NS_OPENonOH_AAPS_Uploader" />
+<img src="doc/pairwise_plot_OpenAPS_NS_OPENonOH.png" alt="pairwise_plot_OpenAPS_NS_OPENonOH" />
 
 

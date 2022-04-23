@@ -61,9 +61,8 @@ class pairwise_plot():
 
         # affects the sequence in the legend and which one is drawn on top of each other
         for i, dataset_index in enumerate(dataset_indices):
-            label_ = self.input2[dataset_index][2]  # returns e.g. "OPENonOH"
             #c = [colors[f"{ds}"] for ds in df["dataset"].astype(int).values]
-            self.plot_one_dataset(ax, i, label_, dataset_indices)
+            self.plot_one_dataset(ax, i, dataset_indices)
 
         # x-axis date formatting
         plt.xlim(self.min_date - pd.Timedelta(days = 100), self.max_date + pd.Timedelta(days = 100))  # 100 days as a margin for plotting
@@ -73,8 +72,8 @@ class pairwise_plot():
         plt.gcf().autofmt_xdate()
         plt.grid()
 
-        label_0 = self.input2[dataset_indices[0]][2]  # returns e.g. "OPENonOH"
-        label_1 = self.input2[dataset_indices[1]][2]
+        label_0 = self.input2["individual"][dataset_indices[0]][2]  # returns e.g. "OPENonOH"
+        label_1 = self.input2["individual"][dataset_indices[1]][2]
         plt.title(f"""{self.plot_config["title_prefix"]}\n{label_0}, {label_1}""")
         plt.xlabel("date")
         plt.ylabel("person incremental counter")
@@ -89,7 +88,7 @@ class pairwise_plot():
         plt.savefig(os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0], self.output[pair_i]["img_path"][1]))
 
 
-    def plot_one_dataset(self, ax, i, label_, dataset_indices):
+    def plot_one_dataset(self, ax, i, dataset_indices):
         """
         plot one dataframe identified by the dataset variable.
         """
@@ -98,13 +97,15 @@ class pairwise_plot():
         df = self.df
 
         selection = True
-        color_ = ""
+        color_, label_ = "", ""
         if i == 0:
             selection =  ~pd.isna(df[f"user_id_{dataset_indices[0]}"]) & pd.isna(df[f"user_id_{dataset_indices[1]}"])
             color_ = colors[dataset_indices[i]]
+            label_ = self.input2["individual"][dataset_indices[i]][2]
         elif i == 1:
             selection =  pd.isna(df[f"user_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"user_id_{dataset_indices[1]}"])
             color_ = colors[dataset_indices[i]]
+            label_ = self.input2["individual"][dataset_indices[i]][2]
         elif i == 2:  # duplicates
             selection =  ~pd.isna(df[f"user_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"user_id_{dataset_indices[1]}"])
             color_ = colors["duplicates"]
@@ -128,7 +129,6 @@ class pairwise_plot():
 
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
-    print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     pwp = pairwise_plot(config_filename, config_path)
     pwp.loop()
 
