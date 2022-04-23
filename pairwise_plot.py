@@ -45,7 +45,9 @@ class pairwise_plot():
         # common min and max dates (on the x-axis) across all plots
         self.min_date = self.df["date"].min() 
         self.max_date = self.df["date"].max()
-        
+        self.min_person_id = self.df["person_id"].min() 
+        self.max_person_id = self.df["person_id"].max()
+
     def plot(self, pair_i):
         """
         plot the three data frames: the first, the duplicates and the second dataset.
@@ -66,6 +68,8 @@ class pairwise_plot():
 
         # x-axis date formatting
         plt.xlim(self.min_date - pd.Timedelta(days = 100), self.max_date + pd.Timedelta(days = 100))  # 100 days as a margin for plotting
+        step_ = 0.05*(self.max_person_id - self.min_person_id)
+        plt.ylim(self.min_person_id - step_, self.max_person_id + step_)
         
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=365))
@@ -76,7 +80,7 @@ class pairwise_plot():
         label_1 = self.input2["individual"][dataset_indices[1]][2]
         plt.title(f"""{self.plot_config["title_prefix"]}\n{label_0}, {label_1}""")
         plt.xlabel("date")
-        plt.ylabel("person incremental counter")
+        plt.ylabel("person index")
         plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
                                             horizontalalignment = 'right'
                                             )
@@ -120,7 +124,7 @@ class pairwise_plot():
         
     def loop(self):
         """
-        produces several plots, where one plot contains ds1, ds2 and their duplicates. They share a common x-axis range.
+        produces several plots, where one plot contains ds1, ds2 and their duplicates. They all share a common x-axis range.
         """
         for i, one_plot_config in enumerate(self.output):
             if "data" not in one_plot_config or "img_path" not in one_plot_config: continue
