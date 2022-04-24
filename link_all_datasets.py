@@ -112,7 +112,7 @@ class link_all_datasets_user_id_only():
         dfs_merged = {}  # dictionary of merged data frames
 
         for key in sorted(self.df_user_id_only):
-            if re.match("[0-9]-[0-9]", key): continue
+            if re.match("[0-9]-[0-9]", key): continue  # breaks down for more than 9 datasets
             input_ID = int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
         
             dfs_merged[input_ID] = {}
@@ -154,7 +154,26 @@ class link_all_datasets_user_id_only():
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + "_secondrow" + ext))
 
         dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
-        dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
+        dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))  # here the person_id variable is created. Important!
+
+        def belongs_to_datasets(row : list, column_list : list, join_by=","):
+            """
+            just used for the lambda-function below
+            """
+            buffer = []
+            for col in column_list:
+                if not "user_id" in col: continue
+
+                if row[col] is not nan and row[col] > 0:
+                    col_id = col.split("_")[-1]  # col: user_id_1
+                    buffer.append(col_id)
+            return join_by.join(sorted(buffer))
+
+        #dataset-variable: 1-2-3
+        #"belongs to" count datasets: 
+        dfs_merged["third_row"]["belongs_to_datasets"] = dfs_merged["third_row"].apply(lambda row: belongs_to_datasets(row, dfs_merged["third_row"].columns), axis=1)
+        dfs_merged["third_row"]["count_belongs_to_datasets"] = dfs_merged["third_row"].apply(lambda x: len(x["belongs_to_datasets"].split(",")), axis=1)
+
         #pdg.show(dfs_merged["third_row"])
         dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id"][0], outfilename + ext))
@@ -257,7 +276,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         dfs_merged = {}  # dictionary of merged data frames
 
         for key in sorted(self.df_user_id_date):
-            if re.match("[0-9]-[0-9]", key): continue  # there is a limit on 10x10 datasets to be linked because of this regular expression. "10-1" would not match this reg exp
+            if re.match("[0-9]-[0-9]", key): continue  # there is a limit on 10 datasets to be linked because of this regular expression: "10-1" would not match this reg exp
             input_ID = int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
         
             dfs_merged[input_ID] = {}
@@ -293,7 +312,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_firstrow" + ext))
 
         dfs_merged["second_row"] = dfs_merged["second_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
-        dfs_merged["second_row"]["person_id"] = range(len(dfs_merged["second_row"]))
+        #dfs_merged["second_row"]["person_id"] = range(len(dfs_merged["second_row"]))
         #pdg.show(dfs_merged["second_row"])
         dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
@@ -311,24 +330,26 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         # for duplicates
         if re.match("[0-9]-[0-9]", ds):
             id_dupl = self.input_duplicate[ds][3]  # e.g. "1-2", see config*.json-files
-            first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
+            first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2", 'ds' short for 'dataset'
             first_ds, second_ds = int(first_ds), int(second_ds)
             join_columns = [f"user_id_{first_ds}", f"user_id_{second_ds}"]
             self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_columns)  #e.g. on="user_id_ds2"
-            cols = ["date", "person_id"]
+            cols = ["date"]
             cols.extend(join_columns)
+            cols.extend(["person_id", "belongs_to_datasets", "count_belongs_to_datasets"])
             self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
         # for individual datasets:
         elif len(ds) < 3: 
             id_dupl = self.input_individual[ds][3]  # e.g. "1", see config*.json-files
             join_column = f"user_id_{id_dupl}"
             self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_column)  #e.g. on="user_id_ds2"
-            cols = ["date", "person_id"]
+            cols = ["date"]
             cols.append(join_column)
+            cols.extend(["person_id", "belongs_to_datasets", "count_belongs_to_datasets"])
             self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
         else:
             raise KeyError(f"{ds} is an unexpected key.")
-        print(self.df_user_id_date[ds])
+        #print(self.df_user_id_date[ds])
 
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
