@@ -112,30 +112,30 @@ class link_all_datasets_user_id_only():
         dfs_merged = {}  # dictionary of merged data frames
 
         for key in sorted(self.df_user_id_only):
-            if re.match("[0-9]-[0-9]", key): continue  # breaks down for more than 9 datasets
-            input_ID = int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
+            if re.match("[0-9]-[0-9]", key): continue  # reg exp breaks down for more than 9 datasets
+            assert int(key) == int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
         
-            dfs_merged[input_ID] = {}
+            dfs_merged[key] = {}
             dupl_ids = []
             for key_dupl in sorted(self.df_user_id_only):
                 if len(key_dupl) < 3: continue
-                id_dupl = self.input_duplicate[key_dupl][3]  # e.g. "1-2", see config*.json-files
-                dupl_ids.append(id_dupl)
-                first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
+                assert key_dupl == self.input_duplicate[key_dupl][3]  # e.g. "1-2", see config*.json-files
+                dupl_ids.append(key_dupl)
+                first_ds, second_ds = key_dupl.split("-")  # key_dupl = "1-2"
                 first_ds, second_ds = int(first_ds), int(second_ds)
-                if not input_ID == first_ds and not input_ID == second_ds: continue  # no column match, do nothing
-                dfs_merged[input_ID][id_dupl] = pd.merge(self.df_user_id_only[key], self.df_user_id_only[key_dupl], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
-                #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_only[key], self.df_user_id_only[key_dupl], f"user_id_{input_ID}")
+                if not int(key) == first_ds and not int(key) == second_ds: continue  # no column match, do nothing
+                dfs_merged[key][key_dupl] = pd.merge(self.df_user_id_only[key], self.df_user_id_only[key_dupl], how="outer", on=f"user_id_{key}", validate="one_to_one")
+                #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_only[key], self.df_user_id_only[key_dupl], f"user_id_{key}")
 
-            if input_ID==1: 
+            if int(key)==1: 
                 # merge the first row:
-                dfs_merged["first_row"] = pd.merge(dfs_merged[input_ID][dupl_ids[0]], dfs_merged[input_ID][dupl_ids[1]], how="outer", on=f"user_id_{input_ID}", validate="one_to_one")
-            elif input_ID==2: 
-                #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column= (f"user_id_{input_ID}",f"user_id_{input_ID}"))
+                dfs_merged["first_row"] = pd.merge(dfs_merged[key][dupl_ids[0]], dfs_merged[key][dupl_ids[1]], how="outer", on=f"user_id_{key}", validate="one_to_one")
+            elif int(key)==2: 
+                #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_column= (f"user_id_{key}",f"user_id_{key}"))
                 print("TODO: fix this! 3-2")
-                dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column=f"user_id_{input_ID}")
-            elif input_ID==3: 
-                dfs_merged["third_row"] = self.merge_dataframes(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_column=f"user_id_{input_ID}")
+                dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_column=f"user_id_{key}")
+            elif int(key)==3: 
+                dfs_merged["third_row"] = self.merge_dataframes(dfs_merged["second_row"], dfs_merged[key]["3-2"], join_column=f"user_id_{key}")
 
 
         #for key in dfs_merged:
@@ -277,29 +277,30 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
 
         for key in sorted(self.df_user_id_date):
             if re.match("[0-9]-[0-9]", key): continue  # there is a limit on 10 datasets to be linked because of this regular expression: "10-1" would not match this reg exp
-            input_ID = int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
-        
-            dfs_merged[input_ID] = {}
+            assert int(key) == int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
+
+            dfs_merged[key] = {}
             dupl_ids = []
             for key_dupl in sorted(self.df_user_id_date):
                 if len(key_dupl) < 3: continue
                 id_dupl = self.input_duplicate[key_dupl][3]  # e.g. "1-2", see config*.json-files
+                assert key_dupl == id_dupl
                 dupl_ids.append(id_dupl)
                 first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
                 first_ds, second_ds = int(first_ds), int(second_ds)
-                if not input_ID == first_ds and not input_ID == second_ds: continue  # no column match, do nothing
-                dfs_merged[input_ID][id_dupl] = pd.merge(self.df_user_id_date[key], self.df_user_id_date[key_dupl], how="outer", on=["date", "person_id", f"user_id_{input_ID}"], validate="one_to_one")
-                #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_date[key], self.df_user_id_date[key_dupl], f"user_id_{input_ID}")
+                if not int(key) == first_ds and not int(key) == second_ds: continue  # no column match, do nothing
+                dfs_merged[key][key_dupl] = pd.merge(self.df_user_id_date[key], self.df_user_id_date[key_dupl], how="outer", on=["date", "person_id", f"user_id_{key}"], validate="one_to_one")
+                #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_user_id_date[key], self.df_user_id_date[key_dupl], f"user_id_{key}")
 
-            if input_ID==1: 
+            if int(key)==1: 
                 # merge the first row:
-                dfs_merged["first_row"] = pd.merge(dfs_merged[input_ID][dupl_ids[0]], dfs_merged[input_ID][dupl_ids[1]], how="outer", on=["date", "person_id", f"user_id_{input_ID}"], validate="one_to_one")
-            elif input_ID==2: 
-                #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_column= (f"user_id_{input_ID}",f"user_id_{input_ID}"))
+                dfs_merged["first_row"] = pd.merge(dfs_merged[key][dupl_ids[0]], dfs_merged[key][dupl_ids[1]], how="outer", on=["date", "person_id", f"user_id_{key}"], validate="one_to_one")
+            elif int(key)==2: 
+                #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_column= (f"user_id_{key}",f"user_id_{key}"))
                 print("TODO: fix this! 3-2")
-                dfs_merged["second_row"] = self.merge_dataframes2(dfs_merged["first_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
-            elif input_ID==3: 
-                dfs_merged["third_row"] = self.merge_dataframes2(dfs_merged["second_row"], dfs_merged[input_ID]["3-2"], join_columns=["date", "person_id", f"user_id_{input_ID}"])
+                dfs_merged["second_row"] = self.merge_dataframes2(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_columns=["date", "person_id", f"user_id_{key}"])
+            elif int(key)==3: 
+                dfs_merged["third_row"] = self.merge_dataframes2(dfs_merged["second_row"], dfs_merged[key]["3-2"], join_columns=["date", "person_id", f"user_id_{key}"])
 
 
         #for key in dfs_merged:
@@ -325,31 +326,34 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         self.out_df_user_id_date = dfs_merged["third_row"]  # make it available throughout the class
 
 
-    def add_person_id_2_user_id_only_tables(self, ds):
+    def add_person_id_2_user_id_only_tables(self, ds_key):
+        """
+        TODO: why is this function useful/necessary?
+        """
         if len(self.out_df_user_id_only) < 1: raise ValueError("self.out_df_user_id_only table is not filled. Try calling generate_user_id_only_table() first.")
         # for duplicates
-        if re.match("[0-9]-[0-9]", ds):
-            id_dupl = self.input_duplicate[ds][3]  # e.g. "1-2", see config*.json-files
-            first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2", 'ds' short for 'dataset'
+        if re.match("[0-9]-[0-9]", ds_key):
+            assert ds_key == self.input_duplicate[ds_key][3]  # e.g. "1-2", see config*.json-files
+            first_ds, second_ds = ds_key.split("-")  # id_dupl = "1-2", 'ds' short for 'dataset'
             first_ds, second_ds = int(first_ds), int(second_ds)
             join_columns = [f"user_id_{first_ds}", f"user_id_{second_ds}"]
-            self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_columns)  #e.g. on="user_id_ds2"
+            self.df_user_id_date[ds_key] = pd.merge(self.df[ds_key], self.out_df_user_id_only, how="left", on=join_columns)  #e.g. on="user_id_ds2"
             cols = ["date"]
-            cols.extend(join_columns)
+            cols.extend(sorted(join_columns))
             cols.extend(["person_id", "belongs_to_datasets", "count_belongs_to_datasets"])
-            self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
+            self.df_user_id_date[ds_key] = self.df_user_id_date[ds_key][cols]
         # for individual datasets:
-        elif len(ds) < 3: 
-            id_dupl = self.input_individual[ds][3]  # e.g. "1", see config*.json-files
+        elif len(ds_key) < 3: 
+            id_dupl = self.input_individual[ds_key][3]  # e.g. "1", see config*.json-files
             join_column = f"user_id_{id_dupl}"
-            self.df_user_id_date[ds] = pd.merge(self.df[ds], self.out_df_user_id_only, how="left", on=join_column)  #e.g. on="user_id_ds2"
+            self.df_user_id_date[ds_key] = pd.merge(self.df[ds_key], self.out_df_user_id_only, how="left", on=join_column)  #e.g. on="user_id_ds2"
             cols = ["date"]
             cols.append(join_column)
             cols.extend(["person_id", "belongs_to_datasets", "count_belongs_to_datasets"])
-            self.df_user_id_date[ds] = self.df_user_id_date[ds][cols]
+            self.df_user_id_date[ds_key] = self.df_user_id_date[ds_key][cols]
         else:
-            raise KeyError(f"{ds} is an unexpected key.")
-        #print(self.df_user_id_date[ds])
+            raise KeyError(f"{ds_key} is an unexpected key.")
+        #print(self.df_user_id_date[ds_key])
 
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
