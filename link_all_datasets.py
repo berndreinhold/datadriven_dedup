@@ -319,11 +319,16 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_secondrow" + ext))
 
         dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["user_id_1", "user_id_2", "user_id_3"])
+        dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + "_thirdrow" + ext))
+
+        df = pd.merge(dfs_merged["third_row"], self.out_df_user_id_only, how="left", on=["person_id", "user_id_1", "user_id_2", "user_id_3"], validate="many_to_one")
+
         #dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))
         #pdg.show(dfs_merged["third_row"])
-        dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
+        
+        df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_user_id_date"][0], outfilename + ext))
-        self.out_df_user_id_date = dfs_merged["third_row"]  # make it available throughout the class
+        self.out_df_user_id_date = df # dfs_merged["third_row"]  # make it available throughout the class
 
 
     def add_person_id_2_user_id_only_tables(self, ds_key):
