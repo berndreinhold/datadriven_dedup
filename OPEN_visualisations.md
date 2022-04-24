@@ -26,9 +26,13 @@ _This is ongoing work, showing the current status, not a final result._
 <img src="doc/pairwise_plot_OPENonOH_AAPS_Uploader_OPENonOH.png" alt="pairwise_plot_OPENonOH_AAPS_Uploader_OPENonOH" />
 <img src="doc/pairwise_plot_OpenAPS_NS_OPENonOH_AAPS_Uploader.png" alt="pairwise_plot_OpenAPS_NS_OPENonOH_AAPS_Uploader" />
 <img src="doc/pairwise_plot_OpenAPS_NS_OPENonOH.png" alt="pairwise_plot_OpenAPS_NS_OPENonOH" />
+
 Both the date range of the x-axis and the person index on the y-axis are the same across all pairwise dataset plots.
 
-## 4. self-duplicates removal (per dataset)
+## 4. days per person (per dataset)
+<img src="doc/days_per_person_n_dataset.png" alt="days_per_person_n_dataset" />
+
+## 5. self-duplicates removal (per dataset)
 A considerable number of duplicate (day-user-id)-pairs in each dataset alone was found:
 ```
 OPENonOH: 27831 days
