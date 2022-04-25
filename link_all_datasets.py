@@ -30,8 +30,8 @@ class link_all_datasets_user_id_only():
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
+        self.link_all_datasets = IO_json["link_all_datasets"]
         self.root_data_dir_name = IO_json["root_data_dir_name"]
-        self.duplicates_json = IO_json["link_all_datasets"]
         self.input = IO_json["link_all_datasets"]["input"]
         self.input_individual = self.input["individual"]
         self.input_duplicate = self.input["duplicate"]
@@ -250,6 +250,33 @@ class link_all_datasets_user_id_only():
             #raise ValueError(f"values are not unique anymore in column 'user_id_ds3': count(all): {count_all}, count(unique): {count_unique}")
             print(f"values are not unique anymore in column '{col_name}': count(all): {count_all}, count(unique): {count_unique}")
 
+
+    def apply_project_member_id_list(self, df : pd.DataFrame, flavor : str ="user_id"):
+        pmid_list = self.link_all_datasets["project_member_id_list"]
+        df_pmid = pd.read_csv(os.path.join(self.root_data_dir_name, pmid_list["list"][0], pmid_list["list"][1]))
+        df_pmid.columns = ["user_id"]
+        dataset_keys = pmid_list["list"][2]
+
+        df_merge = []  # list of dataframes
+        column_list = df.columns
+        for i, dataset_key in enumerate(dataset_keys):  # e.g. dataset_key = "2" 
+            df_merge.append(pd.merge(df, df_pmid, how="inner", left_on=f"user_id_{dataset_key}", right_on="user_id", validate="many_to_one"))
+            df_merge[i] = df_merge[i][column_list]
+
+        df2 = pd.concat(df_merge, axis=0)
+
+        buffer = ""
+        if flavor == "user_id_date":
+            buffer = os.path.join(self.root_data_dir_name, pmid_list["per_user_id_date"][0], pmid_list["per_user_id_date"][1])
+        elif flavor == "user_id":
+            buffer = os.path.join(self.root_data_dir_name, pmid_list["per_user_id"][0], pmid_list["per_user_id"][1])
+        else: 
+            raise ValueError(f"unknown flavor ('user_id' or 'user_id_date'): {flavor}")
+
+        df2.to_csv(buffer)
+        print(f"apply_project_member_id_list(): file created: {buffer}")
+
+
 class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
     def __init__(self, config_filename : str, config_path : str):
         super().__init__(config_filename, config_path)
@@ -366,7 +393,8 @@ def main(config_filename : str = "IO.json", config_path : str = "."):
     lads = link_all_datasets_user_id_date(config_filename, config_path)
     lads.generate_user_id_only_table()
     lads.generate_user_id_date_table(False)
-
+    lads.apply_project_member_id_list(lads.out_df_user_id_only, "user_id")
+    lads.apply_project_member_id_list(lads.out_df_user_id_date, "user_id_date")
 
 if __name__ == "__main__":
     fire.Fire(main)

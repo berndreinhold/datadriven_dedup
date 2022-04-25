@@ -26,6 +26,14 @@
             "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
             "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        },
+        "project_member_id_list" : {
+            "comment" : "[dir_name, file_name, list(dataset keys)] is the file- and dir-name of the list of project member_ids, which are used to restrict the project member ids in the data_per_user_id.csv and data_per_user_id_date.csv",
+            "comment2" : "dataset keys are the ones from 'input' -> 'individual'",
+            "list" : ["", "WhiteList.txt", ["2", "3"]],
+            "per_user_id" : ["", "data_per_user_id_whitelist.csv"],
+            "per_user_id_date" : ["", "data_per_user_id_date_whitelist.csv"],
+            "comment3" : "[dir_name, file_name] is the dir- and file-name of the output files per user_id respectively (user_id, date)"
         }
     },
     "plots": {
