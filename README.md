@@ -1,7 +1,6 @@
 ```
 start date: 20.1.2022 (European date format)
-last edit: 14.4.2022
-author: Bernd Reinhold
+last edit: 7.5.2022
 ```
 # README.md for analyzing the OPENonOH and OpenAPS data sets
 
@@ -90,3 +89,7 @@ following: https://pythonguides.com/python-naming-conventions/
 ## tested with
 - python 3.8.10
 - see requirements.txt
+
+```
+first author: Bernd Reinhold
+```
