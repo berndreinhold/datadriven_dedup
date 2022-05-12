@@ -6,10 +6,10 @@
     {
         "input" : {
                 "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
-                "ds1" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
-                "ds2" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
-                "ds3" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
-                "ds4" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"]
+                "ds0" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
+                "ds1" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
+                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
+                "ds3" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"]
             },
         "output" : {
             "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
@@ -20,9 +20,9 @@
     "steps": {
         "single_dataset" :
         [   
+            "generate_config_json",
             "format the dataset columns properly",
-            "generate_json",
-            "preprocessing",
+            "data_json_2_csv",
             "aggregation",
             "self_duplicates"
         ],

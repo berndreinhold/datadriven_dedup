@@ -2,24 +2,24 @@
 start date: 20.1.2022 (European date format)
 last edit: 7.5.2022
 ```
-# README.md for analyzing the OPENonOH and OpenAPS data sets
+# README.md for finding duplicates in 
 
 ## links
 - [README2.md](README2.md) (general pipeline)
 - [OPEN_visualisations.md](OPEN_visualisations.md)
 
 ## process flow
-
-<img src="doc/ProcessFlow.png" alt="ProcessFlow" width="1000px"/>
+<img src="doc/process_flow_full_pipeline.png" alt="full_pipeline"/>
 
 (generated from [process_flow.odp](doc/process_flow.odp))
 
-_needs update_
+The config.json files are also a good start to see the workflow and the sequence of steps to be taken. See e.g. [io.json](config/io.json) and [config_master.json](config/config_master.json).
 
 ## background
 - it should scale to an arbitrary number of datasets
-- you provide constraints through duplicate criteria (see pairwise)
-- subselections
+- you provide constraints through criteria on: 
+    - how to determine duplicates (see pairwise)
+    - subselections
 
 ## 0. preparation
 
@@ -30,11 +30,27 @@ _needs update_
 
 The folder structure is created in the scripts, if they do not yet exist.
 
-### dependencies
-```
-pip3 install -r requirements.txt
-```
-(requirements.txt was generated with `pipreqs .` + some manual adjustment)
+The new folder structure (as of May 2022):
+- a root data directory, relative to which all directories are located
+- a per_day-directory
+- a duplicates-directory
+- a csv_per_measurement-directory
+
+the input datasets are labeled in the [config_master.json](config_master.json) as ds0,ds1, ..., dsn.
+
+## 1. processing per single dataset
+<img src="doc/process_flow_single_dataset.png" alt="pipeline_single_dataset"/>
+
+## 2. pairwise processing: finding duplicates
+
+## 3. aggregation of all datasets
+
+## 4. visualisation & quality control
+
+
+
+
+
 
 ## 1. preprocessing step: `python3 preprocessing.py` (per dataset)
 preprocessing.py takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files in the _csv_per_measurement_-subdirectory.
@@ -74,6 +90,11 @@ _Paths need to be adjusted to your local environment._
 Here use the generic dataset_1,_2,_3 rather than the specific OpenAPS_NS (nightscout), OPENonOH, in the processing.
 Because for duplicates it just matters, that they are distinct datasets, while in the previous steps the different format specific to each dataset was relevant.
 
+## testing
+A procedure is to be put in place to generate artificial per_day csv files from a matrix expressing the relationship between different datasets.
+It allows to test the pipeline from step 2 to step 4. Validating the logic of generating the data_per_project_member_id.csv files.
+As of May 2022 this deduplication framework is developed with four datasets. The testing allows to validate the generalization of the pipeline to more than four datasets.
+
 ## naming conventions
 following: https://pythonguides.com/python-naming-conventions/
 
@@ -89,6 +110,13 @@ following: https://pythonguides.com/python-naming-conventions/
 ## tested with
 - python 3.8.10
 - see requirements.txt
+
+## dependencies
+```
+pip3 install -r requirements.txt
+```
+(requirements.txt was generated with `pipreqs .` + some manual adjustment)
+
 
 ```
 first author: Bernd Reinhold
