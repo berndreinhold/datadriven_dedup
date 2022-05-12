@@ -1,6 +1,6 @@
 ```
 start date: 20.1.2022 (European date format)
-last edit: 7.5.2022
+last edit: 12.5.2022
 ```
 # README.md for finding duplicates in 
 
@@ -20,7 +20,8 @@ The config.json files are also a good start to see the workflow and the sequence
 - you provide constraints through criteria on: 
     - how to determine duplicates (see pairwise)
     - subselections
-
+- the duplicate logic is applied in step 2 with some preparation work in step 1. If the duplicate logic is to be revised, revisit step 2 first.
+- additional filters can be applied by doing inner joins with project_member_id lists on the data_per_project_member_id.csv
 ## 0. preparation
 
 ### folder structure
@@ -42,7 +43,7 @@ the input datasets are labeled in the [config_master.json](config_master.json) a
 <img src="doc/process_flow_single_dataset.png" alt="pipeline_single_dataset"/>
 
 ## 2. pairwise processing: finding duplicates
-
+### duplicate logic
 ## 3. aggregation of all datasets
 
 ## 4. visualisation & quality control
