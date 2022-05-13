@@ -30,37 +30,60 @@ per_day.csv-files for each dataset containing the correct number of overlapping 
 class artificial_datasets():
     def __init__(self, config_filename : str, config_path : str):
         f = open(os.path.join(config_path, config_filename))
-        self.config = json.load(f)
+        # reading the IO_json config file
+        IO_json = json.load(f)
+        self.seed = IO_json["seed"]
+        self.root_data_dir_name = IO_json["root_data_dir_name"]
+        self.input = IO_json["input"]
+        self.matrix_project_member_id = self.input["matrices"]["per_project_member_id"]
+        self.matrix_day = self.input["matrices"]["per_day"]
+        self.output = IO_json["output"]
+        self.count_datasets = IO_json["count_datasets"]
+        self.IO_json = IO_json
         self.validate_config_file()
 
-    def __del__(self):
-        # create directories
+        # output, data to be generated
+        self.data = [[]*self.count_datasets]  # this is for every entry (i,j) in the matrix
+        self.df_list = []  # this is the list of dataframes, one per dataset
+        print(self.data)
 
-        # write csv files
+
+    def __del__(self):
+        # create output directories and write dataframes to disk
+        for df, ds in zip(self.df_list,self.output["datasets"]):
+            os.makedirs(os.path.join(self.root_data_dir_name, ds[0]), exist_ok=True)
+            df.to_csv(os.path.join(self.root_data_dir_name, ds[0], ds[1]))
+
+    def project_member_ids(self, i : int, j : int):
         pass
 
 
     def validate_config_file(self):
         # check for example, that the dimension of the matrix is compatible with the number of datasets
-        print(self.config)
+        print(self.IO_json)
 
-    def create_one_dataset(self, i, j):
+    def create_one_dataset(self, i : int, j : int):
         """
-
+        fill self.data[i][j]
         """
-        
+        pass
 
 
     def loop(self):
         """
         loop through all datasets
         """
+        # write csv files
+        for i in range(len(self.data)):
+            for j in range(len(self.data[i])):
+                self.data[i].append(self.create_one_dataset((i,j)))
+                # df = pd.DataFrame(data=self.data[i][j])
 
 
 def main(config_filename : str = "config_artificial_data.json", config_path : str = "."):
     # print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     ad = artificial_datasets(config_filename, config_path)
-    ad.create_per()
+    ad.loop()
 
 if __name__ == "__main__":
     fire.Fire(main)
