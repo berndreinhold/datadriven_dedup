@@ -20,8 +20,9 @@ The config.json files are also a good start to see the workflow and the sequence
 - you provide constraints through criteria on: 
     - how to determine duplicates (see pairwise)
     - subselections
-- the duplicate logic is applied in step 2 with some preparation work in step 1. If the duplicate logic is to be revised, revisit step 2 first.
-- additional filters can be applied by doing inner joins with project_member_id lists on the data_per_project_member_id.csv
+- the duplicate logic is applied in step 2 with some preparation work in step 1. If the duplicate logic is to be changed, revisit step 2.
+- additional filters can be applied by doing inner joins with project_member_id lists on the data_per_project_member_id.csv. A subset of people had donated their data via Open Humans as well as participated in a questionnaire (_link?_). A list of project member IDs of these people was used to study their data separately. This subset was selected via inner join between the list of project member IDs with the `data_per_project_member_id.csv` and `data_per_project_member_id_days.csv`. See `OPEN_visualisations_whitelist.md`.
+
 ## 0. preparation
 
 ### folder structure
