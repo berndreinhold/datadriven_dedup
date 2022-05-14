@@ -63,6 +63,9 @@ class artificial_datasets():
         pm_ids2 = self.random.integers(10000000,99999999, count_project_member_ids)
         return pm_ids1, pm_ids2  # random 8 bit number
 
+    def sim_PG_one_day() -> tuple:  # PG: plasma glucose
+        pass
+
 
     def validate_config_file(self):
         # check for example, that the dimension of the matrix is compatible with the number of datasets
@@ -70,13 +73,26 @@ class artificial_datasets():
 
     def create_one_dataset(self, i : int, j : int):
         """
-        fill self.data[i][j]
+        return data per day for one dataset
+        PG: plasma glucose
         """
         count_project_member_ids = self.matrix_project_member_id[i][j]
         count_days = self.matrix_day[i][j]
-        pm_ids1, pm_ids2 = self.project_member_ids(i,j)
+        pm_ids1, pm_ids2 = self.project_member_ids(i,j)  # len(pm_ids1) == count_project_member_ids
         pm_id_indices1 = self.random.integers(0, count_project_member_ids, count_days)
-        pm_id_indices2 = self.random.integers(0, count_project_member_ids, count_days)
+        pm_id_indices2 = self.random.integers(0, count_project_member_ids, count_days)  # only necessary if not i==j
+
+        pm_id_indices1 = sorted(pm_id_indices1)
+        pm_id_indices2 = sorted(pm_id_indices2)  # only necessary if not i==j, but simulated anyway
+
+        PG_mean = self.random.normal(120, 20, count_days)
+        PG_std = self.random.normal(20, 15, count_days)
+        PG_min, PG_max = [],[]
+        min_factor = self.random.normal(3, 1, count_days)
+        max_factor = self.random.normal(4, 1, count_days)
+        for k in range(count_days):
+            PG_min.append(PG_mean[k] - min_factor[k]*PG_std[k])
+            PG_max.append(PG_mean[k] + max_factor[k]*PG_std[k])
 
         # date,sgv_mean,sgv_std,sgv_min,sgv_max,sgv_count,filename,user_id
         data = []
@@ -84,9 +100,10 @@ class artificial_datasets():
             # do a second project_member_id column, if not i==j
             if i==j:
                 project_member_id = pm_ids1[pm_id_indices1[k]]
-                data.append(["2021-05-35", 100, 20, 80, 130, 20, f"test_{i}_{j}.csv", project_member_id])
+                # mean, std, min, max, count, filename, project_member_id
+                data.append(["2021-05-35", PG_mean[k], PG_std[k], PG_min[k], PG_max[k], 288, f"test_{i}_{j}.csv", project_member_id])  # 288: 24h*measurements every 5 min
             else:
-                data.append(["2021-05-35", 100, 20, 80, 130, 20, f"test_{i}_{j}.csv", pm_ids1[pm_id_indices1[k]], pm_ids2[pm_id_indices2[k]]])
+                data.append(["2021-05-35", PG_mean[k], PG_std[k], PG_min[k], PG_max[k], 288, f"test_{i}_{j}.csv", pm_ids1[pm_id_indices1[k]], pm_ids2[pm_id_indices2[k]]])
         return data
 
     def loop(self):
