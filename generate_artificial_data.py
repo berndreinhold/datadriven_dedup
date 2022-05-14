@@ -5,6 +5,7 @@ import json
 import fire
 from copy import deepcopy
 from numpy import nan, random
+import datetime
 
 """
 call as: python3 generate_artificial_data.py
@@ -37,6 +38,7 @@ class artificial_datasets():
             seed = int(seed)
         self.random = random.default_rng(seed)
         self.root_data_dir_name = IO_json["root_data_dir_name"]
+        self.date_range = IO_json["date_range"]
         self.matrix_project_member_id = IO_json["matrices"]["per_project_member_id"]
         self.matrix_day = IO_json["matrices"]["per_day"]
         self.output = IO_json["output"]
@@ -57,11 +59,67 @@ class artificial_datasets():
             df.to_csv(os.path.join(self.root_data_dir_name, ds[0], ds[1]))
             print(f"outfiles created: {os.path.join(self.root_data_dir_name, ds[0], ds[1])}")
 
-    def project_member_ids(self, i : int, j : int):
-        count_project_member_ids = int(self.matrix_project_member_id[i][j])
+    def sim_project_member_ids(self, i : int, j : int) -> tuple:
+        """
+        8 digit project member IDs
+        """
+        count_project_member_ids = self.matrix_project_member_id[i][j]
+        count_days = self.matrix_day[i][j]
         pm_ids1 = self.random.integers(10000000,99999999, count_project_member_ids)
         pm_ids2 = self.random.integers(10000000,99999999, count_project_member_ids)
-        return pm_ids1, pm_ids2  # random 8 bit number
+
+        pm_id_indices1 = self.random.integers(0, count_project_member_ids, count_days)
+        pm_id_indices2 = self.random.integers(0, count_project_member_ids, count_days)  # only necessary if not i==j
+
+        pm_id_indices1 = sorted(pm_id_indices1)
+        pm_id_indices2 = sorted(pm_id_indices2)  # only necessary if not i==j, but simulated anyway
+
+        project_member_ids1, project_member_ids2 = [],[]
+        for k in range(count_days):
+            project_member_ids1.append(pm_ids1[pm_id_indices1[k]])
+            project_member_ids2.append(pm_ids2[pm_id_indices2[k]])
+
+        return project_member_ids1, project_member_ids2, pm_id_indices1, pm_id_indices2
+
+    def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
+
+        count_project_member_ids = self.matrix_project_member_id[i][j]
+        count_days = self.matrix_day[i][j]
+
+        # how many days per project_member_id:
+        dict_count_days1, dict_count_days2 = {}, {}
+        for i in range(count_project_member_ids):
+            dict_count_days1[i] = 0
+            dict_count_days2[i] = 0
+
+        for index1, index2 in zip(pm_id_indices1, pm_id_indices2):
+            dict_count_days1[index1] += 1
+            dict_count_days2[index2] += 1
+
+        # find a start date and a stop date for the number of days:
+        min_date = datetime.date.fromisoformat(self.date_range[0])
+        max_date = datetime.date.fromisoformat(self.date_range[1])
+        max_min_date = max_date - min_date  # assumes that self.date_range[1] > self.date_range[0]
+
+        dict_dates1, dict_dates2 = {}, {}
+        for id in dict_count_days1:
+            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days1[id]))
+            start_date = min_date + datetime.timedelta(days=days_offset)
+            stop_date = start_date + datetime.timedelta(days=dict_count_days1[id])
+            dict_dates1[id] = start_date, stop_date, stop_date - start_date
+
+        for id in dict_count_days2:
+            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days2[id]))
+            start_date = min_date + datetime.timedelta(days=days_offset)
+            stop_date = start_date + datetime.timedelta(days=dict_count_days2[id])
+            dict_dates2[id] = start_date, stop_date, stop_date - start_date
+
+        dates = []
+        for id in dict_count_days2:
+            for a in range(dict_dates2[id][2].days):
+                dates.append(dict_dates2[id][0] + datetime.timedelta(a))
+
+        return dates
 
     def sim_PG_daily_stats(self, count_days) -> tuple:  
         # simulate plasma glucose (PG) statistical variables
@@ -94,12 +152,8 @@ class artificial_datasets():
         count_project_member_ids = self.matrix_project_member_id[i][j]
         count_days = self.matrix_day[i][j]
         if count_days < 1: print(f"Warning: count_days was < 1 ({count_days}) for (i: {i},j: {j})")
-        pm_ids1, pm_ids2 = self.project_member_ids(i,j)  # len(pm_ids1) == count_project_member_ids
-        pm_id_indices1 = self.random.integers(0, count_project_member_ids, count_days)
-        pm_id_indices2 = self.random.integers(0, count_project_member_ids, count_days)  # only necessary if not i==j
-
-        pm_id_indices1 = sorted(pm_id_indices1)
-        pm_id_indices2 = sorted(pm_id_indices2)  # only necessary if not i==j, but simulated anyway
+        project_member_ids1, project_member_ids2, pm_id_indices1, pm_id_indices2 = self.sim_project_member_ids(i, j)
+        dates = self.sim_dates(i, j, pm_id_indices1, pm_id_indices2)
 
         PG_mean, PG_std, PG_min, PG_max, PG_count = self.sim_PG_daily_stats(count_days)
 
@@ -108,11 +162,10 @@ class artificial_datasets():
         for k in range(count_days):
             # do a second project_member_id column, if not i==j
             if i==j:
-                project_member_id = pm_ids1[pm_id_indices1[k]]
                 # mean, std, min, max, count, filename, project_member_id
-                data.append(["2021-05-35", PG_mean[k], PG_std[k], PG_min[k], PG_max[k], PG_count[k], f"test_{i}_{j}.csv", project_member_id])  
+                data.append([dates[k], PG_mean[k], PG_std[k], PG_min[k], PG_max[k], PG_count[k], f"test_{i}_{j}.csv", project_member_ids1[k]])  
             else:
-                data.append(["2021-05-35", PG_mean[k], PG_std[k], PG_min[k], PG_max[k], PG_count[k], f"test_{i}_{j}.csv", pm_ids1[pm_id_indices1[k]], pm_ids2[pm_id_indices2[k]]])
+                data.append([dates[k], PG_mean[k], PG_std[k], PG_min[k], PG_max[k], PG_count[k], f"test_{i}_{j}.csv", project_member_ids1[k], project_member_ids2[k]])
         return data
 
     def loop(self):
