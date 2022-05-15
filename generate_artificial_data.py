@@ -48,8 +48,8 @@ class artificial_datasets():
 
         # output, data to be generated
         self.days = [[]*self.count_datasets]  # this is for every entry (i,j) in the matrix
-        self.df_days = []  # this is the list of dataframes, one per dataset
-        self.df_days_compiled = []
+        self.df_days = []  # this is the list of dataframes, one for every entry (i,j)
+        self.df_days_compiled = [] # dataframes, one per dataset (i)
 
 
     def __del__(self):
