@@ -1,0 +1,36 @@
+{
+    "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+    "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial/",
+    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
+    "core":
+    {
+        "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+        "input" : [
+            ["ds0/", "ds0_per_day.csv", "dataset0"],
+            ["ds1/", "ds1_per_day.csv", "dataset1"],
+            ["ds2/", "ds2_per_day.csv", "dataset2"]
+        ],
+        "output" : {
+            "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
+            "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
+            "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        }
+    },
+    "steps": {
+        "individual_dataset" :
+        [   
+            "generate_config_json",
+            "format the dataset columns properly",
+            "data_json_2_csv",
+            "aggregation_per_day",
+            "self_duplicates"
+        ],
+        "pairwise" : "duplicates_pairwise",
+        "all":
+        [
+            "link_all_datasets",
+            "date_person_id_plots",
+            "upset_plots"
+        ]
+    }
+}
