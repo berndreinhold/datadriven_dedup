@@ -40,9 +40,11 @@ class generate_config_json():
 
     def __del__(self):
         # create output directories and write dataframes to disk
-        with open(os.path.join(self.root_data_dir_name,"test.json"), "w") as f:
+        out_dir = os.path.join(self.root_data_dir_name, "generated_config")
+        os.makedirs(os.path.join(out_dir), exist_ok=True)
+        with open(os.path.join(out_dir, "config_pairwise_duplicates.json"), "w") as f:
             json.dump(self.output, f, indent=4, sort_keys=True)
-        print(f"outfile created: {os.path.join(self.root_data_dir_name, 'test.json')}")
+        print(f"outfile created: {os.path.join(out_dir, 'config_pairwise_duplicates.json')}")
 
     def validate_config_file(self):
         # check for example, that the dimension of the matrix is compatible with the number of datasets
@@ -55,8 +57,21 @@ class generate_config_json():
 
         self.output["duplicates_pairwise"] = dict()
         self.output["duplicates_pairwise"]["diff_svg_threshold"] = 1e-4,
-        self.output["duplicates_pairwise"]["IO"] = []
+        self.output["duplicates_pairwise"]["IO"] = self.list_pairwise_duplicates()
 
+    def list_pairwise_duplicates(self) -> list:
+        """
+        return a list of the pairwise duplicates for the datasets to be written to the config file
+        """
+        pairwise_duplicates = []
+        for i,ds in enumerate(self.core["input"]):
+            for i2, ds2 in enumerate(self.core["input"]):
+                one_pair = {}
+                if i < i2:
+                    one_pair["input"] = [ds, ds2]
+                    one_pair["output"] = ["",f"duplicates_{ds[2]}_{ds2[2]}_per_day.csv", f"duplicates_{ds[2]}_{ds2[2]}"]
+                    pairwise_duplicates.append(one_pair)
+        return sorted(pairwise_duplicates, key=lambda x: x["output"][2])
 
     def all(self):
         pass

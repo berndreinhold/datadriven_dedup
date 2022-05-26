@@ -6,9 +6,9 @@
     {
         "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
         "input" : [
-            ["ds0/", "ds0_per_day.csv", "dataset0"],
-            ["ds1/", "ds1_per_day.csv", "dataset1"],
-            ["ds2/", "ds2_per_day.csv", "dataset2"]
+            ["ds0/", "ds0_per_day.csv", "ds0"],
+            ["ds1/", "ds1_per_day.csv", "ds1"],
+            ["ds2/", "ds2_per_day.csv", "ds2"]
         ],
         "output" : {
             "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
@@ -19,11 +19,8 @@
     "steps": {
         "individual_dataset" :
         [   
-            "generate_config_json",
-            "format the dataset columns properly",
-            "data_json_2_csv",
-            "aggregation_per_day",
-            "self_duplicates"
+            "generate_artificial_data",
+            "generate_config_json"
         ],
         "pairwise" : "duplicates_pairwise",
         "all":
