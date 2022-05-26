@@ -185,13 +185,13 @@ class artificial_datasets():
 
                 cols2 = deepcopy(cols)
                 if i==j:
-                    cols2.append(f"project_member_id_{i}")
+                    cols2.append(f"project_member_id_ds{i}")
                 else:
-                    cols2.append(f"project_member_id_{i}")
-                    cols2.append(f"project_member_id_{j}")
+                    cols2.append(f"project_member_id_ds{i}")
+                    cols2.append(f"project_member_id_ds{j}")
                 df = pd.DataFrame(data=self.days[i][j], columns=cols2)
                 cols2 = deepcopy(cols)
-                cols2.append(f"project_member_id_{i}")
+                cols2.append(f"project_member_id_ds{i}")
                 self.df_days[i].append(df[cols2])
 
         # mix them:
@@ -206,11 +206,11 @@ class artificial_datasets():
                     self.df_days_compiled[i] = self.df_days[i][i]
                 elif j > i:
                     cols2 = cols
-                    cols2.append(f"project_member_id_{j}")
+                    cols2.append(f"project_member_id_ds{j}")
         """                             
 
 
-def main(config_filename : str = "config_artificial_data.json", config_path : str = "."):
+def main(config_filename : str = "config_artificial_data.json", config_path : str = "config"):
     # print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     ad = artificial_datasets(config_filename, config_path)
     ad.loop()

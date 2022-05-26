@@ -36,15 +36,15 @@ class generate_config_json():
         self.validate_config_file()
 
         # output
-        self.output = {}
+        self.output = { "root_data_dir_name": self.root_data_dir_name}
 
     def __del__(self):
         # create output directories and write dataframes to disk
         out_dir = os.path.join(self.root_data_dir_name, "generated_config")
         os.makedirs(os.path.join(out_dir), exist_ok=True)
-        with open(os.path.join(out_dir, "config_pairwise_duplicates.json"), "w") as f:
+        with open(os.path.join(out_dir, "config_pairwise.json"), "w") as f:
             json.dump(self.output, f, indent=4, sort_keys=True)
-        print(f"outfile created: {os.path.join(out_dir, 'config_pairwise_duplicates.json')}")
+        print(f"outfile created: {os.path.join(out_dir, 'config_pairwise.json')}")
 
     def validate_config_file(self):
         # check for example, that the dimension of the matrix is compatible with the number of datasets
@@ -56,7 +56,7 @@ class generate_config_json():
     def duplicates_pairwise_processing(self):
 
         self.output["duplicates_pairwise"] = dict()
-        self.output["duplicates_pairwise"]["diff_svg_threshold"] = 1e-4,
+        self.output["duplicates_pairwise"]["diff_svg_threshold"] = 1e-4,  # is stored as list in the output json-file. A bug in the json lib?
         self.output["duplicates_pairwise"]["IO"] = self.list_pairwise_duplicates()
 
     def list_pairwise_duplicates(self) -> list:
