@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import json
 import fire
+from copy import deepcopy
 
 """
 call as: python3 generate_config_json.py
@@ -42,9 +43,18 @@ class generate_config_json():
         # create output directories and write dataframes to disk
         out_dir = os.path.join(self.root_data_dir_name, "generated_config")
         os.makedirs(os.path.join(out_dir), exist_ok=True)
-        with open(os.path.join(out_dir, "config_pairwise.json"), "w") as f:
-            json.dump(self.output, f, indent=4, sort_keys=True)
-        print(f"outfile created: {os.path.join(out_dir, 'config_pairwise.json')}")
+        output_json = {"duplicates_pairwise": deepcopy(self.output["duplicates_pairwise"])}
+        self.save_config_json(output_json, "config_pairwise.json")
+        output_json = {"link_all_datasets": deepcopy(self.output["link_all_datasets"])}
+        self.save_config_json(output_json, "config_all.json")
+
+
+    def save_config_json(self, output_json, json_filename):
+        out_dir = os.path.join(self.root_data_dir_name, "generated_config")
+        with open(os.path.join(out_dir, json_filename), "w") as f:
+            json.dump(output_json, f, indent=4, sort_keys=True)
+        print(f"outfile created: {os.path.join(out_dir, json_filename)}")
+
 
     def validate_config_file(self):
         # check for example, that the dimension of the matrix is compatible with the number of datasets
@@ -53,11 +63,21 @@ class generate_config_json():
     def individual_dataset(self):
         pass
 
-    def duplicates_pairwise_processing(self):
+    def config_pairwise_json(self):
 
         self.output["duplicates_pairwise"] = dict()
         self.output["duplicates_pairwise"]["diff_svg_threshold"] = 1e-4,  # is stored as list in the output json-file. A bug in the json lib?
         self.output["duplicates_pairwise"]["IO"] = self.list_pairwise_duplicates()
+
+    def config_all_json(self):
+        """
+        create a config file for the combination and aggregation of all datasets
+        """
+        self.output["link_all_datasets"] = dict()
+        self.output["link_all_datasets"]["input"] = self.core["input"]
+        duplicates = [x["output"] for x in self.list_pairwise_duplicates()]
+        self.output["link_all_datasets"]["duplicates"] = duplicates
+        self.output["link_all_datasets"]["output"] = self.core["output"]
 
     def list_pairwise_duplicates(self) -> list:
         """
@@ -73,9 +93,6 @@ class generate_config_json():
                     pairwise_duplicates.append(one_pair)
         return sorted(pairwise_duplicates, key=lambda x: x["output"][2])
 
-    def all(self):
-        pass
-
     def loop(self):
         """
         loop through all steps in the config file
@@ -84,10 +101,9 @@ class generate_config_json():
             if step == "individual_dataset":
                 pass
             elif step == "pairwise":
-                json_output = self.duplicates_pairwise_processing()
-                print(json_output)
+                self.config_pairwise_json()
             elif step == "all":
-                self.all()
+                self.config_all_json()
 
 
 
