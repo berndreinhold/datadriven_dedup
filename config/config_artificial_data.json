@@ -2,7 +2,7 @@
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial/",
     "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
-    "seed" : "None",
+    "seed" : "42",
     "count_datasets" : 3,
     "date_range": ["2014-10-03", "2020-05-31"],
     "matrices" : {
