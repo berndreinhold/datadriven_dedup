@@ -17,12 +17,12 @@
         }
     },
     "steps": {
-        "individual_dataset" :
+        "preparation" :
         [   
             "generate_artificial_data",
             "generate_config_json"
         ],
-        "pairwise" : "duplicates_pairwise",
+        "pairwise" : "pairwise_duplicates",
         "all":
         [
             "link_all_datasets",
