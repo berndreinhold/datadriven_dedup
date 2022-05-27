@@ -18,10 +18,10 @@ These tables are then the only input for plotting (pairwise_plot.py, upsetplot_o
 
 
 
-class link_all_datasets_user_id_only():
+class link_all_datasets_pm_id_only():
     """
     input: the per-day csv files as well as the pairwise duplicate files.
-    output: a table with person_ids and user_ids in each dataset/uploader pair (e.g. OpenAPS/nightscout), aligned where the duplicate files indicate matching user_ids across dataset/uploader pairs.
+    output: a table with person_ids and pm_ids in each dataset/uploader pair (e.g. OpenAPS/nightscout), aligned where the duplicate files indicate matching pm_ids across dataset/uploader pairs.
     """
 
     def __init__(self, config_filename : str, config_path : str):
@@ -32,37 +32,36 @@ class link_all_datasets_user_id_only():
         IO_json = json.load(f)
         self.link_all_datasets = IO_json["link_all_datasets"]
         self.root_data_dir_name = IO_json["root_data_dir_name"]
-        self.input = IO_json["link_all_datasets"]["input"]
-        self.input_individual = self.input["individual"]
-        self.input_duplicate = self.input["duplicate"]
-        self.output = IO_json["link_all_datasets"]["output"]
+        self.input_individual = self.link_all_datasets["individual"]
+        self.input_duplicate = self.link_all_datasets["duplicate"]
+        self.output = self.link_all_datasets["output"]
 
-        self.df = {}  # dictionary of all the input dataframes
-        self.df_user_id_only = {}  # dictionary of all the input dataframes, but the user_ids only
+        self.df = {"individual" : {}, "duplicate" : {}}  # dictionary of all the input dataframes
+        self.df_pm_id_only = {"individual" : {}, "duplicate" : {}}  # dictionary of all the input dataframes, but the pm_ids only
         self.init_individual_datasets()
         self.init_duplicate_datasets()
         for key in self.df:
-            #print(self.df[key])
-            print(key, len(self.df[key]))
+            for ds in self.df[key]:
+                print(key, ds, len(self.df[key][ds]))
 
-        self.out_df_user_id_only = pd.DataFrame()  # make the dataframe "per user_id" available throughout the class
+        self.out_df_pm_id_only = pd.DataFrame()  # make the dataframe "per pm_id" available throughout the class
 
     def init_individual_datasets(self):
         """
-        fill the dictionary of dataframes self.df, read from the csv files of individual datasets
+        fill the dictionary of dataframes self.df, read from the csv files of individual datasets (as opposed to duplicate datasets)
+        self.input_individual is a list
         """
         for ds in self.input_individual:
-            if "comment" in ds: continue
-            if "duplicate" in ds or re.match("[0-9]-[0-9]", ds): continue
             infile = self.input_individual[ds]
-            self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
-            self.df[ds][f"user_id_{infile[3]}"] = self.df[ds]["user_id"].astype(int)
-            self.df[ds] = self.df[ds][["date", f"user_id_{infile[3]}"]]
-            self.df[ds][f"label_{infile[3]}"] = infile[2]  # dataset or file label
-            self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
-            self.df_user_id_only[ds]=self.df[ds][[f"user_id_{infile[3]}", f"label_{infile[3]}"]].drop_duplicates()
-            self.df_user_id_only[ds]=self.df_user_id_only[ds][f"user_id_{infile[3]}"]
-            #self.df_user_id_only[ds]=self.df[ds][f"user_id_{infile[3]}"].unique()
+            label_ = infile[2]
+            self.df["individual"][label_] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
+            self.df["individual"][label_][f"pm_id_{infile[3]}"] = self.df["individual"][label_]["pm_id"].astype(int)
+            self.df["individual"][label_] = self.df["individual"][label_][["date", f"pm_id_{infile[3]}"]]
+            self.df["individual"][label_][f"label_{infile[3]}"] = infile[2]  # dataset or file label
+            self.df["individual"][label_]["date"] = pd.to_datetime(self.df["individual"][label_]["date"],format="%Y-%m-%d")
+            self.df_pm_id_only[ds]=self.df["individual"][label_][[f"pm_id_{infile[3]}", f"label_{infile[3]}"]].drop_duplicates()
+            self.df_pm_id_only[ds]=self.df_pm_id_only[ds][f"pm_id_{infile[3]}"]
+            #self.df_pm_id_only[ds]=self.df[ds][f"pm_id_{infile[3]}"].unique()
 
 
     def init_duplicate_datasets(self):
@@ -77,14 +76,14 @@ class link_all_datasets_user_id_only():
             first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
             first_ds, second_ds = int(first_ds), int(second_ds)
 
-            self.df[ds][f'user_id_{first_ds}'] = self.df[ds]['user_id_ds1'].astype(int)
-            self.df[ds][f'user_id_{second_ds}'] = self.df[ds]['user_id_ds2'].astype(int)
-            self.df[ds] = self.df[ds][["date", f"user_id_{first_ds}", f"user_id_{second_ds}"]]
+            self.df[ds][f'pm_id_{first_ds}'] = self.df[ds]['pm_id_ds1'].astype(int)
+            self.df[ds][f'pm_id_{second_ds}'] = self.df[ds]['pm_id_ds2'].astype(int)
+            self.df[ds] = self.df[ds][["date", f"pm_id_{first_ds}", f"pm_id_{second_ds}"]]
             #self.df[ds][f"label_{id_dupl}"] = infile[2]  # dataset or file label
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
             # fix the data types that were loaded as the unspecific "object" - TODO: is this still an issue 
-            # self.df_user_id_only[ds]=self.df[ds][[f"user_id_{first_ds}", f"user_id_{second_ds}", f"label_{id_dupl}"]].drop_duplicates()
-            self.df_user_id_only[ds]=self.df[ds][[f"user_id_{first_ds}", f"user_id_{second_ds}"]].drop_duplicates()
+            # self.df_pm_id_only[ds]=self.df[ds][[f"pm_id_{first_ds}", f"pm_id_{second_ds}", f"label_{id_dupl}"]].drop_duplicates()
+            self.df_pm_id_only[ds]=self.df[ds][[f"pm_id_{first_ds}", f"pm_id_{second_ds}"]].drop_duplicates()
 
     def use_not_na_value(self, row, col_names : str):
         """
@@ -388,7 +387,7 @@ class link_all_datasets_user_id_date(link_all_datasets_user_id_only):
         #print(self.df_user_id_date[ds_key])
 
 
-def main(config_filename : str = "IO.json", config_path : str = "."):
+def main(config_filename : str = "config_all.json", config_path : str = ""):
     print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     lads = link_all_datasets_user_id_date(config_filename, config_path)
     lads.generate_user_id_only_table()
