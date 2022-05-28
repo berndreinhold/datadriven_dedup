@@ -74,12 +74,12 @@ class artificial_datasets():
         pm_id_indices1 = sorted(pm_id_indices1)
         pm_id_indices2 = sorted(pm_id_indices2)  # only necessary if not i==j, but simulated anyway
 
-        pm_ids1, pm_ids2 = [],[]
+        project_m_ids1, project_m_ids2 = [],[]
         for k in range(count_days):
-            pm_ids1.append(pm_ids1[pm_id_indices1[k]])
-            pm_ids2.append(pm_ids2[pm_id_indices2[k]])
+            project_m_ids1.append(pm_ids1[pm_id_indices1[k]])
+            project_m_ids2.append(pm_ids2[pm_id_indices2[k]])
 
-        return pm_ids1, pm_ids2, pm_id_indices1, pm_id_indices2
+        return project_m_ids1, project_m_ids2, pm_id_indices1, pm_id_indices2
 
     def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
 
