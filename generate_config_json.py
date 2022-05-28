@@ -32,7 +32,7 @@ class generate_config_json():
         self.steps = IO_json["steps"]
 
         # self.output = IO_json["output"]
-        self.count_datasets = len(self.core["input"])
+        self.count_datasets = len(self.core["individual"])
         self.IO_json = IO_json
         self.validate_config_file()
 
@@ -77,15 +77,15 @@ class generate_config_json():
         """
 
         # comment for the created config_all.json file
-        self.output["link_all_datasets"] = {            
-            "comment" : "[dir_name, file_name, human-readable label, id, machine-readable label]", 
-            "comment1" : "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
-            "comment2" : "id is used to determine matching columns in the individual dataset and the duplicate files, therefore 'ds1-ds2' has to match with 'ds1' and 'ds2' of the individual datasets. ",
-            "comment3" : "the keys are now identical to the ids and can be used as part of column_names: user_id_1 refers to the data of the corresponding key below. They are also used as keys in dictionaries of dataframes.",
-            "comment4" : "human-readable label is used in plotting, machine-readable label in paths or filenames."
-        }
-        self.output["link_all_datasets"]["individual"] = self.core["input"]
-        duplicates = [x["output"] for x in self.list_pairwise_duplicates()]
+        self.output["link_all_datasets"] = {}
+        for key in self.core:
+            if "comment" in key:
+                self.output["link_all_datasets"][key] = self.core[key]
+        if "comment0" in self.output["link_all_datasets"]:  # let's avoid overwriting comments in the config file
+            raise KeyError(f"comment0 already in config file: {self.output['link_all_datasets']['comment0']}")
+        self.output["link_all_datasets"]["comment0"] = "duplicate datasets: [dir_name, file_name, human-readable label, machine-readable label, id]"
+        self.output["link_all_datasets"]["individual"] = self.core["individual"]
+        duplicates = [x for x in self.list_pairwise_duplicates()]
         self.output["link_all_datasets"]["duplicate"] = duplicates
         self.output["link_all_datasets"]["output"] = self.core["output"]
 
@@ -94,14 +94,13 @@ class generate_config_json():
         return a list of the pairwise duplicates for the datasets to be written to the config file
         """
         pairwise_duplicates = []
-        for i,ds in enumerate(self.core["input"]):
-            for i2, ds2 in enumerate(self.core["input"]):
-                one_pair = {}
+        for i,ds in enumerate(self.core["individual"]):
+            for i2, ds2 in enumerate(self.core["individual"]):
                 if i < i2:
-                    one_pair["input"] = [ds, ds2]
-                    one_pair["output"] = ["",f"duplicates_{ds[2]}_{ds2[2]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"{ds[2]}-{ds2[2]}", f"duplicates_{ds[2]}_{ds2[2]}"]
+                    #one_pair["input"] = [ds, ds2]
+                    one_pair = ["",f"duplicates_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
                     pairwise_duplicates.append(one_pair)
-        return sorted(pairwise_duplicates, key=lambda x: x["output"][2])
+        return sorted(pairwise_duplicates, key=lambda x: x[3])
 
     def loop(self):
         """
