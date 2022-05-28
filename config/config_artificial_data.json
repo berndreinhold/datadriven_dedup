@@ -1,7 +1,6 @@
 {
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial/",
-    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
     "seed" : "42",
     "count_datasets" : 3,
     "date_range": ["2014-10-03", "2020-05-31"],
@@ -11,10 +10,10 @@
     },
     "output" : {
         "datasets" : [
-            ["ds0/", "ds0_per_day.csv", "dataset0"],
-            ["ds1/", "ds1_per_day.csv", "dataset1"],
-            ["ds2/", "ds2_per_day.csv", "dataset2"]
+            ["ds0/", "ds0_per_day.csv", "ds0"],
+            ["ds1/", "ds1_per_day.csv", "ds1"],
+            ["ds2/", "ds2_per_day.csv", "ds2"]
         ],
-        "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        "comment" : "[dir_name, file_name, machine-readable label]"
     }
 }
