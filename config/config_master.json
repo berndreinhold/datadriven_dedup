@@ -1,7 +1,6 @@
 {
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN/",
-    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
     "core":
     {
         "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",

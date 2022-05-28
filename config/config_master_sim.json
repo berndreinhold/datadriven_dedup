@@ -1,18 +1,21 @@
 {
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial/",
-    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
     "core":
     {
-        "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
-        "input" : [
-            ["ds0/", "ds0_per_day.csv", "ds0"],
-            ["ds1/", "ds1_per_day.csv", "ds1"],
-            ["ds2/", "ds2_per_day.csv", "ds2"]
+        "comment": "[dir_name, file_name, human-readable label, machine-readable label]",
+        "comment1": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+        "comment2": "human-readable label is used in plotting, machine-readable label in paths or filenames",
+        "comment3": "labels include the list index",
+        "comment4": "the link indices (0,1,2, ...) can be used as part of the column_names: pm_id_1 refers to the data of the corresponding list index below.",
+        "individual" : [
+            ["ds0/", "ds0_per_day.csv", "dataset 0", "dataset_0"],
+            ["ds1/", "ds1_per_day.csv", "dataset 1", "dataset_1"],
+            ["ds2/", "ds2_per_day.csv", "dataset 2", "dataset_2"]
         ],
         "output" : {
-            "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
-            "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
+            "per_pm_id" : ["", "data_per_pm_id.csv", "per_pm_id"],
+            "per_pm_id_date" : ["", "data_per_pm_id_date.csv", "per_pm_id_date"],
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
