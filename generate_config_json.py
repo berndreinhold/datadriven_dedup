@@ -43,9 +43,11 @@ class generate_config_json():
         # create output directories and write dataframes to disk
         out_dir = os.path.join(self.root_data_dir_name, "generated_config")
         os.makedirs(os.path.join(out_dir), exist_ok=True)
-        output_json = {"duplicates_pairwise": deepcopy(self.output["duplicates_pairwise"])}
+        output_json = { "root_data_dir_name": self.root_data_dir_name}
+        output_json["duplicates_pairwise"] = deepcopy(self.output["duplicates_pairwise"])
         self.save_config_json(output_json, "config_pairwise.json")
-        output_json = {"link_all_datasets": deepcopy(self.output["link_all_datasets"])}
+        output_json = { "root_data_dir_name": self.root_data_dir_name}
+        output_json["link_all_datasets"] = deepcopy(self.output["link_all_datasets"])
         self.save_config_json(output_json, "config_all.json")
 
 
@@ -73,10 +75,18 @@ class generate_config_json():
         """
         create a config file for the combination and aggregation of all datasets
         """
-        self.output["link_all_datasets"] = dict()
-        self.output["link_all_datasets"]["input"] = self.core["input"]
+
+        # comment for the created config_all.json file
+        self.output["link_all_datasets"] = {            
+            "comment" : "[dir_name, file_name, human-readable label, id, machine-readable label]", 
+            "comment1" : "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+            "comment2" : "id is used to determine matching columns in the individual dataset and the duplicate files, therefore 'ds1-ds2' has to match with 'ds1' and 'ds2' of the individual datasets. ",
+            "comment3" : "the keys are now identical to the ids and can be used as part of column_names: user_id_1 refers to the data of the corresponding key below. They are also used as keys in dictionaries of dataframes.",
+            "comment4" : "human-readable label is used in plotting, machine-readable label in paths or filenames."
+        }
+        self.output["link_all_datasets"]["individual"] = self.core["input"]
         duplicates = [x["output"] for x in self.list_pairwise_duplicates()]
-        self.output["link_all_datasets"]["duplicates"] = duplicates
+        self.output["link_all_datasets"]["duplicate"] = duplicates
         self.output["link_all_datasets"]["output"] = self.core["output"]
 
     def list_pairwise_duplicates(self) -> list:
@@ -89,7 +99,7 @@ class generate_config_json():
                 one_pair = {}
                 if i < i2:
                     one_pair["input"] = [ds, ds2]
-                    one_pair["output"] = ["",f"duplicates_{ds[2]}_{ds2[2]}_per_day.csv", f"duplicates_{ds[2]}_{ds2[2]}"]
+                    one_pair["output"] = ["",f"duplicates_{ds[2]}_{ds2[2]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"{ds[2]}-{ds2[2]}", f"duplicates_{ds[2]}_{ds2[2]}"]
                     pairwise_duplicates.append(one_pair)
         return sorted(pairwise_duplicates, key=lambda x: x["output"][2])
 
