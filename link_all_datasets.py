@@ -26,7 +26,7 @@ class link_all_datasets_pm_id_only():
 
     def __init__(self, config_filename : str, config_path : str):
         """
-        read a config file and populate file names and paths of csv files of individual datasets and their tables of duplicates:
+        read a config file and populate file names and paths of csv files of ind(ividual) datasets and their tables of dup(licates):
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
@@ -36,54 +36,54 @@ class link_all_datasets_pm_id_only():
         self.input_duplicate = self.link_all_datasets["duplicate"]
         self.output = self.link_all_datasets["output"]
 
-        self.df = {"individual" : {}, "duplicate" : {}}  # dictionary of all the input dataframes
-        self.df_pm_id_only = {"individual" : {}, "duplicate" : {}}  # dictionary of all the input dataframes, but the pm_ids only
+        self.df = {"ind" : [], "dupl" : {}}  # individual datasets are organized in a list, the duplicate datasets in a dictionary with keys like '0-1', '0-2', '1-2'
+        self.df_pm_id_only = {"ind" : [], "dupl" : {}}  # see comment above
         self.init_individual_datasets()
         self.init_duplicate_datasets()
-        for key in self.df:
-            for ds in self.df[key]:
-                print(key, ds, len(self.df[key][ds]))
+        for i,ds in enumerate(self.df["ind"]):
+            print(i, len(ds))
+        for key in self.df["dupl"]:
+            print(key, len(self.df["dupl"][key]))
 
         self.out_df_pm_id_only = pd.DataFrame()  # make the dataframe "per pm_id" available throughout the class
 
     def init_individual_datasets(self):
         """
-        fill the dictionary of dataframes self.df, read from the csv files of individual datasets (as opposed to duplicate datasets)
+        fill the dictionary of dataframes self.df, read from the csv files of ind(ividual) datasets (as opposed to dup(licate) datasets)
         self.input_individual is a list
         """
-        for ds in self.input_individual:
-            infile = self.input_individual[ds]
-            label_ = infile[2]
-            self.df["individual"][label_] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
-            self.df["individual"][label_][f"pm_id_{infile[3]}"] = self.df["individual"][label_]["pm_id"].astype(int)
-            self.df["individual"][label_] = self.df["individual"][label_][["date", f"pm_id_{infile[3]}"]]
-            self.df["individual"][label_][f"label_{infile[3]}"] = infile[2]  # dataset or file label
-            self.df["individual"][label_]["date"] = pd.to_datetime(self.df["individual"][label_]["date"],format="%Y-%m-%d")
-            self.df_pm_id_only[ds]=self.df["individual"][label_][[f"pm_id_{infile[3]}", f"label_{infile[3]}"]].drop_duplicates()
-            self.df_pm_id_only[ds]=self.df_pm_id_only[ds][f"pm_id_{infile[3]}"]
-            #self.df_pm_id_only[ds]=self.df[ds][f"pm_id_{infile[3]}"].unique()
+        for i, ds in enumerate(self.input_individual):
+            infile = self.input_individual[i]
+            self.df["ind"].append(pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0))
+            self.df["ind"][i][f"pm_id_{i}"] = self.df["ind"][i][f"pm_id_{i}"].astype(int)
+            self.df["ind"][i] = self.df["ind"][i][["date", f"pm_id_{i}"]]
+            self.df["ind"][i][f"label_{i}"] = infile[3]  # machine readable label
+            self.df["ind"][i]["date"] = pd.to_datetime(self.df["ind"][i]["date"],format="%Y-%m-%d")
+            self.df_pm_id_only["ind"].append(self.df["ind"][i][[f"pm_id_{i}", f"label_{i}"]].drop_duplicates())
+            self.df_pm_id_only["ind"][i]=self.df_pm_id_only["ind"][i][f"pm_id_{i}"]
+            #self.df_pm_id_only[ds]=self.df[ds][f"pm_id_{label_}"].unique()
 
 
     def init_duplicate_datasets(self):
         """
-        fill the dictionary of dataframes self.df, read from the csv files of duplicate datasets
+        fill the dictionary of dataframes self.df, read from the csv files of dupl(icate) datasets
+        self.input_duplicate is a list
         """
-        for ds in self.input_duplicate:
-            if "comment" in ds: continue
-            infile = self.input_duplicate[ds]
-            self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
-            id_dupl = infile[3]  # e.g. "1-2", see config*.json-files
+        for i, ds in enumerate(self.input_duplicate):
+            infile = self.input_duplicate[i]
+            id_dupl = infile[4]  # e.g. "1-2", see config_all.json-files
+            self.df["dupl"][id_dupl] = pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0)
             first_ds, second_ds = id_dupl.split("-")  # id_dupl = "1-2"
             first_ds, second_ds = int(first_ds), int(second_ds)
 
-            self.df[ds][f'pm_id_{first_ds}'] = self.df[ds]['pm_id_ds1'].astype(int)
-            self.df[ds][f'pm_id_{second_ds}'] = self.df[ds]['pm_id_ds2'].astype(int)
-            self.df[ds] = self.df[ds][["date", f"pm_id_{first_ds}", f"pm_id_{second_ds}"]]
-            #self.df[ds][f"label_{id_dupl}"] = infile[2]  # dataset or file label
-            self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
+            self.df["dupl"][id_dupl][f'pm_id_{first_ds}'] = self.df["dupl"][id_dupl][f'pm_id_{first_ds}'].astype(int)
+            self.df["dupl"][id_dupl][f'pm_id_{second_ds}'] = self.df["dupl"][id_dupl][f'pm_id_{second_ds}'].astype(int)
+            self.df["dupl"][id_dupl] = self.df["dupl"][id_dupl][["date", f"pm_id_{first_ds}", f"pm_id_{second_ds}"]]
+            #self.df["dupl"][id_dupl][f"label_{id_dupl}"] = infile[2]  # dataset or file label
+            self.df["dupl"][id_dupl]["date"] = pd.to_datetime(self.df["dupl"][id_dupl]["date"],format="%Y-%m-%d")
             # fix the data types that were loaded as the unspecific "object" - TODO: is this still an issue 
-            # self.df_pm_id_only[ds]=self.df[ds][[f"pm_id_{first_ds}", f"pm_id_{second_ds}", f"label_{id_dupl}"]].drop_duplicates()
-            self.df_pm_id_only[ds]=self.df[ds][[f"pm_id_{first_ds}", f"pm_id_{second_ds}"]].drop_duplicates()
+            # self.df_pm_id_only[id_dupl]=self.df[id_dupl][[f"pm_id_{first_ds}", f"pm_id_{second_ds}", f"label_{id_dupl}"]].drop_duplicates()
+            self.df_pm_id_only["dupl"][id_dupl]=self.df["dupl"][id_dupl][[f"pm_id_{first_ds}", f"pm_id_{second_ds}"]].drop_duplicates()
 
     def use_not_na_value(self, row, col_names : str):
         """
@@ -108,53 +108,60 @@ class link_all_datasets_pm_id_only():
         TODO: (optional) generalize to N files and their duplicates.
         """
         dfs, dfs_duplicates = [], []
-        dfs_merged = {}  # dictionary of merged data frames
+        dfs_merged = {}  # dictionary of merged data frames: outer join of individual with duplicate dataset
 
-        for key in sorted(self.df_pm_id_only):
-            if re.match("[0-9]-[0-9]", key): continue  # reg exp breaks down for more than 9 datasets
-            assert int(key) == int(self.input_individual[key][3])  # e.g. "1", see config*.json-files
+        for key, df_ind in enumerate(self.df_pm_id_only["ind"]):
         
             dfs_merged[key] = {}
             dupl_ids = []
-            for key_dupl in sorted(self.df_pm_id_only):
-                if len(key_dupl) < 3: continue
-                assert key_dupl == self.input_duplicate[key_dupl][3]  # e.g. "1-2", see config*.json-files
-                dupl_ids.append(key_dupl)
+            for key_dupl in sorted(self.df_pm_id_only["dupl"]):
                 first_ds, second_ds = key_dupl.split("-")  # key_dupl = "1-2"
                 first_ds, second_ds = int(first_ds), int(second_ds)
                 if not int(key) == first_ds and not int(key) == second_ds: continue  # no column match, do nothing
-                dfs_merged[key][key_dupl] = pd.merge(self.df_pm_id_only[key], self.df_pm_id_only[key_dupl], how="outer", on=f"pm_id_{key}", validate="one_to_one")
+                dupl_ids.append(key_dupl)
+                dfs_merged[key][key_dupl] = pd.merge(self.df_pm_id_only["ind"][key], self.df_pm_id_only["dupl"][key_dupl], how="outer", on=f"pm_id_{key}", validate="one_to_one")
                 #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_pm_id_only[key], self.df_pm_id_only[key_dupl], f"pm_id_{key}")
 
-            if int(key)==1: 
+            # from here onwards only dfs_merged is being used:
+            if int(key)==0: 
                 # merge the first row:
                 dfs_merged["first_row"] = pd.merge(dfs_merged[key][dupl_ids[0]], dfs_merged[key][dupl_ids[1]], how="outer", on=f"pm_id_{key}", validate="one_to_one")
-            elif int(key)==2: 
+            elif int(key)==1: 
                 #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_column= (f"pm_id_{key}",f"pm_id_{key}"))
-                print("TODO: fix this! 3-2")
-                dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_column=f"pm_id_{key}")
-            elif int(key)==3: 
-                dfs_merged["third_row"] = self.merge_dataframes(dfs_merged["second_row"], dfs_merged[key]["3-2"], join_column=f"pm_id_{key}")
+                dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["1-2"], join_column=f"pm_id_{key}")
+            elif int(key)==2: 
+                dfs_merged["third_row"] = self.merge_dataframes(dfs_merged["second_row"], dfs_merged[key]["1-2"], join_column=f"pm_id_{key}")
 
 
         #for key in dfs_merged:
         #    print(key)
         #    pdg.show(dfs_merged[key])
-        dfs_merged["first_row"] = dfs_merged["first_row"].sort_values(by=["pm_id_1", "pm_id_2", "pm_id_3"])
+        column_sequence = sorted([x for x in dfs_merged["first_row"].columns if x.startswith("pm_id")])
+        dfs_merged["first_row"].sort_values(by=column_sequence, inplace=True)
         #pdg.show(dfs_merged["first_row"])
         outfilename, ext = os.path.splitext(self.output["per_pm_id"][1])
         dfs_merged["first_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], outfilename + "_firstrow" + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], outfilename + "_firstrow" + ext))
 
-        dfs_merged["second_row"] = dfs_merged["second_row"].sort_values(by=["pm_id_1", "pm_id_2", "pm_id_3"])
+        column_sequence = sorted([x for x in dfs_merged["second_row"].columns if x.startswith("pm_id")])
+        dfs_merged["second_row"].sort_values(by=column_sequence, inplace=True)
         dfs_merged["second_row"]["person_id"] = range(len(dfs_merged["second_row"]))
         #pdg.show(dfs_merged["second_row"])
         dfs_merged["second_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], outfilename + "_secondrow" + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], outfilename + "_secondrow" + ext))
 
-        dfs_merged["third_row"] = dfs_merged["third_row"].sort_values(by=["pm_id_1", "pm_id_2", "pm_id_3"])
+        column_sequence = sorted([x for x in dfs_merged["third_row"].columns if x.startswith("pm_id")])
+        dfs_merged["third_row"].sort_values(by=column_sequence, inplace=True)
         dfs_merged["third_row"]["person_id"] = range(len(dfs_merged["third_row"]))  # here the person_id variable is created. Important!
 
+        self.entry_datasets_association(dfs_merged["third_row"])  # adds two columns to dfs_merged["third_row"]
+        self.out_df_pm_id_only = dfs_merged["third_row"]  # make it available throughout the class
+
+
+    def entry_datasets_association(self, df):
+        """
+        Add two columns to df which describe to which datasets a row belongs and to how many different datasets.
+        """
         def belongs_to_datasets(row : list, column_list : list, join_by=","):
             """
             just used for the lambda-function below
@@ -170,13 +177,12 @@ class link_all_datasets_pm_id_only():
 
         #dataset-variable: 1-2-3
         #"belongs to" count datasets: 
-        dfs_merged["third_row"]["belongs_to_datasets"] = dfs_merged["third_row"].apply(lambda row: belongs_to_datasets(row, dfs_merged["third_row"].columns), axis=1)
-        dfs_merged["third_row"]["count_belongs_to_datasets"] = dfs_merged["third_row"].apply(lambda x: len(x["belongs_to_datasets"].split(",")), axis=1)
+        df["belongs_to_datasets"] = df.apply(lambda row: belongs_to_datasets(row, df.columns), axis=1)
+        df["count_belongs_to_datasets"] = df.apply(lambda x: len(x["belongs_to_datasets"].split(",")), axis=1)
 
-        #pdg.show(dfs_merged["third_row"])
-        dfs_merged["third_row"].to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], outfilename + ext))
-        print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], outfilename + ext))
-        self.out_df_pm_id_only = dfs_merged["third_row"]  # make it available throughout the class
+        #pdg.show(df)
+        df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
+        print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
 
 
     # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
@@ -388,7 +394,6 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
 
 
 def main(config_filename : str = "config_all.json", config_path : str = ""):
-    print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     lads = link_all_datasets_pm_id_date(config_filename, config_path)
     lads.generate_pm_id_only_table()
     lads.generate_pm_id_date_table(False)
