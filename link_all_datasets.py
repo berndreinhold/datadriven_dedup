@@ -216,24 +216,6 @@ class link_all_datasets_pm_id_only():
 
         return df_merged
 
-    def merge_dataframes2(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_columns : tuple) -> pd.DataFrame:
-        # TODO: some form of decorator to mimick function overloading would be nicer
-        # TODO: merge expressive function name
-        df_merged = pd.merge(df1, df2, how="outer", on=join_columns)  #e.g. on="pm_id_ds2"
-    
-        # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
-        # transfer the pm_id information from the "column with suffix"-pairs to their columns without suffix
-        for col in set(df1.columns) & set(df2.columns) - set(join_columns):
-            if col.startswith("label"): continue
-            self.merge_dataframes_one_column(df_merged, col)
-
-        # drop the suffixed columns from the merge, as their content has been transferred to the columns without suffix:
-        cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
-        df_merged = df_merged[cols]
-
-        return df_merged
-
-
 
 
     def merge_dataframes_one_column(self, df_merged : pd.DataFrame, col_name : str):
@@ -286,7 +268,9 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
     def __init__(self, config_filename : str, config_path : str):
         super().__init__(config_filename, config_path)
         self.out_df_pm_id_date = pd.DataFrame()  # make the dataframe "per pm_id_date" available throughout the class, it is the collection of all self.df_pm_id_date-dataframes
-        self.df_pm_id_date = {}  # dictionary of the individual datasets merged with self.out_df_pm_id_only (thereby receiving the person_id-variable)
+        # dictionary of the individual datasets merged with self.out_df_pm_id_only (thereby receiving the person_id-variable)
+        self.df_pm_id_date = {"ind" : [], "dupl" : {}}  # individual datasets are organized in a list, the duplicate datasets in a dictionary with keys like '0-1', '0-2', '1-2'
+        
 
     def generate_pm_id_date_table(self, save : bool = False):
         """
@@ -330,9 +314,9 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
             elif int(key)==2: 
                 #dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_column= (f"pm_id_{key}",f"pm_id_{key}"))
                 print("TODO: fix this! 3-2")
-                dfs_merged["second_row"] = self.merge_dataframes2(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_columns=["date", "person_id", f"pm_id_{key}"])
+                dfs_merged["second_row"] = self.merge_dataframes(dfs_merged["first_row"], dfs_merged[key]["3-2"], join_columns=["date", "person_id", f"pm_id_{key}"])
             elif int(key)==3: 
-                dfs_merged["third_row"] = self.merge_dataframes2(dfs_merged["second_row"], dfs_merged[key]["3-2"], join_columns=["date", "person_id", f"pm_id_{key}"])
+                dfs_merged["third_row"] = self.merge_dataframes(dfs_merged["second_row"], dfs_merged[key]["3-2"], join_columns=["date", "person_id", f"pm_id_{key}"])
 
 
         #for key in dfs_merged:
@@ -361,6 +345,26 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
         df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id_date"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_pm_id_date"][0], outfilename + ext))
         self.out_df_pm_id_date = df # dfs_merged["third_row"]  # make it available throughout the class
+
+
+    def merge_dataframes(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_columns : tuple) -> pd.DataFrame:
+        """
+        overloads the merge_dataframes()-function of the class link_all_datasets_pm_id_only
+        """
+
+        df_merged = pd.merge(df1, df2, how="outer", on=join_columns)  #e.g. on="pm_id_ds2"
+    
+        # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
+        # transfer the pm_id information from the "column with suffix"-pairs to their columns without suffix
+        for col in set(df1.columns) & set(df2.columns) - set(join_columns):
+            if col.startswith("label"): continue
+            self.merge_dataframes_one_column(df_merged, col)
+
+        # drop the suffixed columns from the merge, as their content has been transferred to the columns without suffix:
+        cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
+        df_merged = df_merged[cols]
+
+        return df_merged
 
 
     def add_person_id_2_pm_id_only_tables(self, ds_key):
