@@ -85,7 +85,7 @@ class generate_config_json():
             raise KeyError(f"comment0 already in config file: {self.output['link_all_datasets']['comment0']}")
         self.output["link_all_datasets"]["comment0"] = "duplicate datasets: [dir_name, file_name, human-readable label, machine-readable label, id]"
         self.output["link_all_datasets"]["individual"] = self.core["individual"]
-        duplicates = [x for x in self.list_pairwise_duplicates()]
+        duplicates = [x["output"] for x in self.list_pairwise_duplicates()]
         self.output["link_all_datasets"]["duplicate"] = duplicates
         self.output["link_all_datasets"]["output"] = self.core["output"]
 
@@ -96,11 +96,12 @@ class generate_config_json():
         pairwise_duplicates = []
         for i,ds in enumerate(self.core["individual"]):
             for i2, ds2 in enumerate(self.core["individual"]):
+                one_pair = {}
                 if i < i2:
-                    #one_pair["input"] = [ds, ds2]
-                    one_pair = ["",f"duplicates_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
+                    one_pair["input"] = [ds, ds2]
+                    one_pair["output"] = ["",f"duplicates_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
                     pairwise_duplicates.append(one_pair)
-        return sorted(pairwise_duplicates, key=lambda x: x[3])
+        return sorted(pairwise_duplicates, key=lambda x: x["output"][3])
 
     def loop(self):
         """

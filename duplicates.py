@@ -12,10 +12,10 @@ class duplicates_pairwise():
     def __init__(self, config_filename : str, config_path : str):
         """
         read a config file and populate file names and paths of three csv files:
-            - OpenAPS with key [project_member_id, date]
-            - OPENonOH with key [project_member_id, date]
+            - OpenAPS with key [pm_id, date]
+            - OPENonOH with key [pm_id, date]
         output:
-            - duplicates file containing the duplicates between the two data files with key [project_member_id_ds1, project_member_id_ds2, date]
+            - duplicates file containing the duplicates between the two data files with key [pm_id_1, pm_id_2, date] (e.g.)
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
@@ -41,7 +41,9 @@ class duplicates_pairwise():
         # load correct IO variables
         self.json_input = self.IO[i]["input"]
         self.json_output = self.IO[i]["output"]
-        id = ["_" + self.json_input[0][2], "_" + self.json_input[1][2]]
+        id_dupl = self.json_output[4]
+        id_dupl = id_dupl.split("-")
+        id = ["_" + id_dupl[0], "_" + id_dupl[1]]
 
         out = self.df[0].merge(self.df[1], left_on="date", right_on="date", how="inner", suffixes=(id[0], id[1]))
 
@@ -52,8 +54,8 @@ class duplicates_pairwise():
         df2 = out[(out.diff_sgv_mean*out.diff_sgv_mean < self.diff_svg_threshold) & (out.diff_sgv_std*out.diff_sgv_std < self.diff_svg_threshold) & 
             (out.diff_sgv_min*out.diff_sgv_min < self.diff_svg_threshold) & (out.diff_sgv_max*out.diff_sgv_max < self.diff_svg_threshold) & 
             (out.diff_sgv_count*out.diff_sgv_count < self.diff_svg_threshold)]
-        df3 = df2[[f"project_member_id{id[0]}", f"project_member_id{id[1]}", "date", "diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count", 
-            f"filename{id[0]}", f"filename{id[1]}"]].sort_values(by=[f"project_member_id{id[0]}", f"project_member_id{id[1]}", "date"])
+        df3 = df2[[f"pm_id{id[0]}", f"pm_id{id[1]}", "date", "diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count", 
+            f"filename{id[0]}", f"filename{id[1]}"]].sort_values(by=[f"pm_id{id[0]}", f"pm_id{id[1]}", "date"])
 
         if debug and len(df3)>0: gui = pdg.show(df3)
 
@@ -70,7 +72,9 @@ class duplicates_pairwise():
         # load correct IO variables
         self.json_input = self.IO[i]["input"]
         self.json_output = self.IO[i]["output"]
-        id = ["_" + self.json_input[0][2], "_" + self.json_input[1][2]]
+        id_dupl = self.json_output[4]
+        id_dupl = id_dupl.split("-")
+        id = ["_" + id_dupl[0], "_" + id_dupl[1]]
 
 
         df_duplicates_only = df.groupby(["diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count"]).agg(["count"])
@@ -94,8 +98,8 @@ class duplicates_pairwise():
 
 
         # get list of duplicates and the count of days
-        df3_mod = df[[f"project_member_id{id[0]}", f"project_member_id{id[1]}",'date']]
-        df4 = df3_mod.groupby([f"project_member_id{id[0]}", f"project_member_id{id[1]}"]).agg(["count"])
+        df3_mod = df[[f"pm_id{id[0]}", f"pm_id{id[1]}",'date']]
+        df4 = df3_mod.groupby([f"pm_id{id[0]}", f"pm_id{id[1]}"]).agg(["count"])
 
         columns = []
         for col in df4.columns:
@@ -103,7 +107,7 @@ class duplicates_pairwise():
         df4.columns = columns
         df4.fillna(value=0, inplace=True)  #
         df4.reset_index(inplace=True)
-        #print(df4[[f"project_member_id{id[0]}", f"project_member_id{id[1]}",'date_count']])
+        #print(df4[[f"pm_id{id[0]}", f"pm_id{id[1]}",'date_count']])
         print(df4)
 
 
