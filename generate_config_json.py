@@ -49,13 +49,18 @@ class generate_config_json():
         output_json = { "root_data_dir_name": self.root_data_dir_name}
         output_json["link_all_datasets"] = deepcopy(self.output["link_all_datasets"])
         self.save_config_json(output_json, "config_all.json")
+        output_json = { "root_data_dir_name": self.root_data_dir_name}
+        output_json["summary_plots"] = deepcopy(self.output["summary_plots"])
+        output_json["pairwise_plots"] = deepcopy(self.output["pairwise_plots"])
+        self.save_config_json(output_json, "config_viz.json")
+
 
 
     def save_config_json(self, output_json, json_filename):
         out_dir = os.path.join(self.root_data_dir_name, "generated_config")
         with open(os.path.join(out_dir, json_filename), "w") as f:
             json.dump(output_json, f, indent=4, sort_keys=True)
-        print(f"outfile created: {os.path.join(out_dir, json_filename)}")
+        print(f"config file created: {os.path.join(out_dir, json_filename)}")
 
 
     def validate_config_file(self):
@@ -65,11 +70,27 @@ class generate_config_json():
     def individual_dataset(self):
         pass
 
+
     def config_pairwise_json(self):
 
         self.output["duplicates_pairwise"] = dict()
         self.output["duplicates_pairwise"]["diff_svg_threshold"] = 1e-4,  # is stored as list in the output json-file. A bug in the json lib?
         self.output["duplicates_pairwise"]["IO"] = self.list_pairwise_duplicates()
+
+    def list_pairwise_duplicates(self) -> list:
+        """
+        return a list of the pairwise duplicates for the datasets to be written to the config file
+        """
+        pairwise_duplicates = []
+        for i,ds in enumerate(self.core["individual"]):
+            for i2, ds2 in enumerate(self.core["individual"]):
+                one_pair = {}
+                if i < i2:
+                    one_pair["input"] = [ds, ds2]
+                    one_pair["output"] = ["",f"duplicates_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
+                    pairwise_duplicates.append(one_pair)
+        return sorted(pairwise_duplicates, key=lambda x: x["output"][3])
+
 
     def config_all_json(self):
         """
@@ -89,19 +110,37 @@ class generate_config_json():
         self.output["link_all_datasets"]["duplicate"] = duplicates
         self.output["link_all_datasets"]["output"] = self.core["output"]
 
-    def list_pairwise_duplicates(self) -> list:
+
+    def config_viz_json(self):
         """
-        return a list of the pairwise duplicates for the datasets to be written to the config file
+        create a config file for the visualisation
         """
-        pairwise_duplicates = []
-        for i,ds in enumerate(self.core["individual"]):
-            for i2, ds2 in enumerate(self.core["individual"]):
-                one_pair = {}
-                if i < i2:
-                    one_pair["input"] = [ds, ds2]
-                    one_pair["output"] = ["",f"duplicates_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
-                    pairwise_duplicates.append(one_pair)
-        return sorted(pairwise_duplicates, key=lambda x: x["output"][3])
+        self.output["summary_plots"] = {}
+        self.output["summary_plots"]["input"] = self.core["output"]
+        self.output["summary_plots"]["dataset_labels"] = [x[2] for x in self.core["individual"]]
+        self.output["summary_plots"]["upsetplot_output"] = self.upsetplot_output()
+        self.output["summary_plots"]["venn3plot_output"] = self.venn3plot_output()
+        self.output["summary_plots"]["days_per_person_output"] = ["", "days_per_person_n_dataset.png", "histogram of days per person in the respective datasets"]
+
+        self.output["pairwise_plots"] = {}
+
+    def upsetplot_output(self):
+        out = {}
+        out["per_pm_id"] = ["img/", "upsetplot_per_pm_id.png", "persons in the respective datasets", "per_pm_id"]
+        out["per_pm_id_date"] = ["img/", "upsetplot_per_pm_id_date.png", "person-days in the respective datasets", "per_pm_id_date"]
+        out["comment"] = "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        return out
+
+    def venn3plot_output(self):
+        """
+            depending on the number of datasets, the venn3plot is either a single plot or a set of plots
+        """
+        assert self.count_datasets <= 3, "venn3plot is only implemented for 3 datasets"
+        out = {}
+        out["per_pm_id"] = ["img/", "venn3plot_per_pm_id.png", "persons in the respective datasets", "per_pm_id"]
+        out["per_pm_id_date"] = ["img/", "venn3plot_per_pm_id_date.png", "person-days in the respective datasets", "per_pm_id_date"]
+        out["comment"] = "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        return out
 
     def loop(self):
         """
@@ -114,7 +153,8 @@ class generate_config_json():
                 self.config_pairwise_json()
             elif step == "all":
                 self.config_all_json()
-
+            elif step == "viz":
+                self.config_viz_json()
 
 
 def main(config_filename : str = "config_master_sim.json", config_path : str = "."):
