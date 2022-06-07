@@ -84,9 +84,9 @@ class pairwisePlot():
         plt.legend(loc="upper left", markerscale=4, framealpha=0.5)
         plt.tight_layout()
 
-        print("saved figure: ", os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0], self.output[pair_i]["img_path"][1]))
-        os.makedirs(os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0]), exist_ok=True)
-        plt.savefig(os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0], self.output[pair_i]["img_path"][1]))
+        print("saved figure: ", os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0], self.output[pair_i]["img"][1]))
+        os.makedirs(os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0]), exist_ok=True)
+        plt.savefig(os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0], self.output[pair_i]["img"][1]))
 
 
     def plot_one_dataset(self, ax, i, dataset_indices):
@@ -100,15 +100,16 @@ class pairwisePlot():
         selection = True
         color_, label_ = "", ""
         if i == 0:
-            selection =  ~pd.isna(df[f"user_id_{dataset_indices[0]}"]) & pd.isna(df[f"user_id_{dataset_indices[1]}"])
-            color_ = colors[dataset_indices[i]]
-            label_ = self.output[pair_i]["axis_label"][0]
+            # pm_id as project member id
+            selection =  ~pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & pd.isna(df[f"pm_id_{dataset_indices[1]}"])
+            color_ = colors[f"{dataset_indices[i]}"]
+            label_ = self.output[dataset_indices[i]]["axis_label"][0]
         elif i == 1:
-            selection =  pd.isna(df[f"user_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"user_id_{dataset_indices[1]}"])
-            color_ = colors[dataset_indices[i]]
-            label_ = self.output[pair_i]["axis_label"][1]
+            selection =  pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"pm_id_{dataset_indices[1]}"])
+            color_ = colors[f"{dataset_indices[i]}"]
+            label_ = self.output[dataset_indices[i]]["axis_label"][1]
         elif i == 2:  # duplicates
-            selection =  ~pd.isna(df[f"user_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"user_id_{dataset_indices[1]}"])
+            selection =  ~pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"pm_id_{dataset_indices[1]}"])
             color_ = colors["duplicates"]
             label_ = "duplicates"
         else:
@@ -124,7 +125,7 @@ class pairwisePlot():
         produces several plots, where one plot contains ds1, ds2 and their duplicates. They all share a common x-axis range.
         """
         for i, one_plot_config in enumerate(self.output):
-            if "data" not in one_plot_config or "img_path" not in one_plot_config: continue
+            if "data" not in one_plot_config or "img" not in one_plot_config: continue
             print(i, one_plot_config)
             self.plot(i)
 
