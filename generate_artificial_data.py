@@ -31,18 +31,20 @@ class artificial_datasets():
         f = open(os.path.join(config_path, config_filename))
         # reading the IO_json config file
         IO_json = json.load(f)
-        seed = IO_json["seed"]
+        self.artificial_data = IO_json["artificial_data"]
+        seed = self.artificial_data["seed"]
         if len(seed) == 0 or seed == "None":
             seed = None
         else:
             seed = int(seed)
         self.random = random.default_rng(seed)
         self.root_data_dir_name = IO_json["root_data_dir_name"]
-        self.date_range = IO_json["date_range"]
-        self.matrix_pm_id = IO_json["matrices"]["per_pm_id"]
-        self.matrix_day = IO_json["matrices"]["per_day"]
-        self.output = IO_json["output"]
-        self.count_datasets = IO_json["count_datasets"]
+
+        self.date_range = self.artificial_data["date_range"]
+        self.matrix_pm_id = self.artificial_data["matrices"]["per_pm_id"]
+        self.matrix_day = self.artificial_data["matrices"]["per_day"]
+        self.output = IO_json["core"]["individual"]
+        self.count_datasets = self.artificial_data["count_datasets"]
         self.IO_json = IO_json
         self.validate_config_file()
 
@@ -54,7 +56,7 @@ class artificial_datasets():
 
     def __del__(self):
         # create output directories and write dataframes to disk
-        for df, ds in zip(self.df_days_compiled,self.output["datasets"]):
+        for df, ds in zip(self.df_days_compiled,self.output):
             os.makedirs(os.path.join(self.root_data_dir_name, ds[0]), exist_ok=True)
             df.to_csv(os.path.join(self.root_data_dir_name, ds[0], ds[1]))
             print(f"outfiles created: {os.path.join(self.root_data_dir_name, ds[0], ds[1])}")
@@ -210,7 +212,7 @@ class artificial_datasets():
         """                             
 
 
-def main(config_filename : str = "config_artificial_data.json", config_path : str = "config"):
+def main(config_filename : str = "config_master_sim.json", config_path : str = "config"):
     # print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     ad = artificial_datasets(config_filename, config_path)
     ad.loop()

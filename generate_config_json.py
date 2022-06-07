@@ -168,7 +168,7 @@ class generate_config_json():
                 if i < i2:
                     one_pair["data"] = [i, i2, f"{i}-{i2}"]
                     one_pair["axis_label"] = [f"{ds[2]}", f"{ds2[2]}"]
-                    one_pair["img_path"] = ["",f"pairwise_plot_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
+                    one_pair["img"] = ["img/",f"pairwise_plot_{ds[3]}_{ds2[3]}_per_day.png", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
                     if i==0: one_pair["comment"] = "the list of keys in 'data' refer back to section 'link_all_datasets' -> 'input' and 'plots' -> 'dataset_labels'"
                     plot_pairs.append(one_pair)
         
