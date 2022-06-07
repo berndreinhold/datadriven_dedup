@@ -20,7 +20,7 @@
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
-    "artifical_data":{
+    "artificial_data":{
         "seed" : "42",
         "count_datasets" : 3,
         "date_range": ["2014-10-03", "2020-05-31"],
