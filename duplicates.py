@@ -7,7 +7,7 @@ import pandasgui as pdg
 import fire
 
 
-class duplicates_pairwise():
+class duplicatesPairwise():
 
     def __init__(self, config_filename : str, config_path : str):
         """
@@ -122,7 +122,7 @@ class duplicates_pairwise():
 
 def main(config_filename : str = "config_pairwise.json", config_path : str = "."):
 
-    dp = duplicates_pairwise(config_filename, config_path)
+    dp = duplicatesPairwise(config_filename, config_path)
     dp.loop()
 
 if __name__ == "__main__":
