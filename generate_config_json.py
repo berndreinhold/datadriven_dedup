@@ -16,9 +16,7 @@ three config json files:
 
 
 output:
-
-
-
+generate config_viz.json and other config files so that only one config file has to be loaded for upsetplot_venn3.ipynb, pairwise_plot.py
 
 """
 
@@ -122,7 +120,7 @@ class generate_config_json():
         self.output["summary_plots"]["venn3plot_output"] = self.venn3plot_output()
         self.output["summary_plots"]["days_per_person_output"] = ["", "days_per_person_n_dataset.png", "histogram of days per person in the respective datasets"]
 
-        self.output["pairwise_plots"] = {}
+        self.output["pairwise_plots"] = self.pairwise_plots()
 
     def upsetplot_output(self):
         out = {}
@@ -142,6 +140,41 @@ class generate_config_json():
         out["comment"] = "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         return out
 
+    def pairwise_plots(self):
+        """
+        create a config file section for the pairwise plots
+        """
+        out = {}
+        out["input"] = self.core["output"]["per_pm_id_date"]
+        
+        out["output"] = self.list_plot_pairs()
+        # out_pc: output plot_config
+        out_pc = {"title_prefix" : "two datasets and their duplicates"}
+        print("TODO: Warning! This code has no colors beyond 4 datasets")
+        out_pc["colors"] = {"0" : "green", "1" : "red", "2" : "blue", "3" : "orange"}
+        out_pc["colors"]["duplicates"] = "black"
+        out_pc["colors"]["comment"] = "colors are the same per dataset in all plots"
+        out["plot_config"] = out_pc
+        return out
+
+    def list_plot_pairs(self) -> list:
+        """
+        return a list of the pairwise duplicates for the datasets to be written to the config file
+        """
+        plot_pairs = []
+        for i,ds in enumerate(self.core["individual"]):
+            for i2, ds2 in enumerate(self.core["individual"]):
+                one_pair = {}
+                if i < i2:
+                    one_pair["data"] = [i, i2, f"{i}-{i2}"]
+                    one_pair["axis_label"] = [f"{ds[2]}", f"{ds2[2]}"]
+                    one_pair["img_path"] = ["",f"pairwise_plot_{ds[3]}_{ds2[3]}_per_day.csv", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
+                    if i==0: one_pair["comment"] = "the list of keys in 'data' refer back to section 'link_all_datasets' -> 'input' and 'plots' -> 'dataset_labels'"
+                    plot_pairs.append(one_pair)
+        
+        return sorted(plot_pairs, key=lambda x: x["data"])
+
+
     def loop(self):
         """
         loop through all steps in the config file
@@ -149,12 +182,12 @@ class generate_config_json():
         for step in self.steps:
             if step == "individual_dataset":
                 pass
-            elif step == "pairwise":
+            elif step == "pairwise":  # this is not on the pairwise_plots, rather on pairwise dayly dataset similarity calculation
                 self.config_pairwise_json()
             elif step == "all":
                 self.config_all_json()
             elif step == "viz":
-                self.config_viz_json()
+                self.config_viz_json()  # includes the pairwise plots
 
 
 def main(config_filename : str = "config_master_sim.json", config_path : str = "."):
