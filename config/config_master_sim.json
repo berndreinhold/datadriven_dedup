@@ -1,5 +1,6 @@
 {
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+    "comment0": "pm_id short for project_member_id",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial/",
     "core":
     {
@@ -19,6 +20,15 @@
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
+    "artifical_data":{
+        "seed" : "42",
+        "count_datasets" : 3,
+        "date_range": ["2014-10-03", "2020-05-31"],
+        "matrices" : {
+            "per_pm_id" : [[10, 5, 7], [0, 20, 8], [0, 0, 25]],
+            "per_day" : [[250, 100, 125], [0, 300, 100], [0, 0, 310]]
+        }
+    },
     "steps": {
         "preparation" :
         [   
@@ -26,11 +36,11 @@
             "generate_config_json"
         ],
         "pairwise" : "pairwise_duplicates",
-        "all":
-        [
-            "link_all_datasets",
+        "all": "link_all_datasets",
+        "viz" : [
             "date_person_id_plots",
-            "upset_plots"
+            "upset_plots",
+            "pairwise_plots"
         ]
     }
 }
