@@ -1,29 +1,31 @@
 {
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN/",
-    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
     "core":
     {
-        "input" : {
-                "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
-                "ds0" : ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS_NS"],
-                "ds1" : ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS_AAPS_Uploader"],
-                "ds2" : ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH_NS"],
-                "ds3" : ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH_AAPS_Uploader"]
-            },
+        "comment": "[dir_name, file_name, human-readable label, machine-readable label]",
+        "comment1": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+        "comment2": "human-readable label is used in plotting, machine-readable label in paths or filenames",
+        "comment3": "the link indices (0,1,2, ...) can be used as part of the column_names in the dataframes: pm_id_1 refers to the data of the corresponding list index below.",
+        "input" : [
+                ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS (NS)", "OpenAPS_NS"],
+                ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS (AAPS Uploader)", "OpenAPS_AAPS_Uploader"],
+                ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH (NS)", "OPENonOH_NS"],
+                ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH (AAPS_Uploader)", "OPENonOH_AAPS_Uploader"]
+        ],
         "output" : {
-            "per_user_id" : ["", "data_per_user_id.csv", "per_user_id"],
-            "per_user_id_date" : ["", "data_per_user_id_date.csv", "per_user_id_date"],
+            "per_pm_id" : ["", "data_per_pm_id.csv", "per_pm_id"],
+            "per_pm_id_date" : ["", "data_per_pm_id_date.csv", "per_pm_id_date"],
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
     },
     "steps": {
-        "single_dataset" :
+        "individual_dataset" :
         [   
             "generate_config_json",
             "format the dataset columns properly",
             "data_json_2_csv",
-            "aggregation",
+            "aggregation_per_day",
             "self_duplicates"
         ],
         "pairwise" : "duplicates_pairwise",

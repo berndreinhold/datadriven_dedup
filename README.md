@@ -1,6 +1,6 @@
 ```
-start date: 20.1.2022 (European date format)
-last edit: 12.5.2022
+start date: 20.1.2022 (DD.MM.YYYY)
+last edit: 29.5.2022
 ```
 # README.md for finding duplicates in 
 
@@ -8,7 +8,15 @@ last edit: 12.5.2022
 - [README2.md](README2.md) (general pipeline)
 - [OPEN_visualisations.md](OPEN_visualisations.md)
 
+
+
 ## process flow
+- in the config files only the root data dir is needed, not the git repository's dir.
+- when going through the sequence of steps, intermediate output files are being generated with a hardcoded name. The workaround is to change the root_data_dir_name for e.g. simulated and real data.
+### conventions
+- the individual datasets are a list
+- the duplicate datasets are a dictionary with key "first_dataset_index-second_dataset_index"
+- the machine-readable label in ```["ds0/", "ds0_per_day.csv", "dataset 0", "ds0"]``` (index: 3) is also the prefix in the filename and the sub-directory, however the code does not break if this is changed.
 <img src="doc/process_flow_full_pipeline.png" alt="full_pipeline"/>
 
 (generated from [process_flow.odp](doc/process_flow.odp))
@@ -46,7 +54,12 @@ the input datasets are labeled in the [config_master.json](config_master.json) a
 ## 2. pairwise processing: finding duplicates
 ### duplicate logic
 ## 3. aggregation of all datasets
-
+in link_all_datasets.py
+```python
+    a project_member_id_list can be specified in the config_all.json file (config_all.json is created via generate_config_json.py and can then be adjusted by the user)
+    lads.project_member_id_list_as_filter(lads.out_df_pm_id_only, "pm_id")
+    lads.project_member_id_list_as_filter(lads.out_df_pm_id_date, "pm_id_date")
+```
 ## 4. visualisation & quality control
 
 

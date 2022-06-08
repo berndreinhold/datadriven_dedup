@@ -36,11 +36,13 @@ They represent the relationship between different user-ids on a per-user-id- and
 ## 3a. additional filters
 Additional filters can be introduced via lists of user_ids. These lists are used to filter the content of the two tables above via "inner joins".
 ## 4. [visualisations](OPEN_visualisations.md)
-The two tables from above can then be used to visualize the relationship between the datasets.
-Venn-diagrams or [Upset plots](https://pypi.org/project/UpSetPlot/) are used.
-Then there are plots showing at a "person_counter vs. date"-level the pairwise duplicates.
+- The two tables from above can then be used to visualize the relationship between the datasets.
+- Venn-diagrams or [Upset plots](https://pypi.org/project/UpSetPlot/) are used.
+- Then there are plots showing at a "person_counter vs. date"-level the pairwise duplicates.
 
-
+- Use upsetplot_venn3.ipynb, which in turn uses the config_viz.json, which has been generated with generate_config_json.py from the config_master_sim.json.
+This is a Jupyter notebook, which is more interactive and where you have to select individually whether you want to produce plots "per_pm_id" (per project member id) or "per_pm_id_date" (per project member id or date).
+- Then there is pairwise_plot.py to produce the plots person_id vs. days. It also uses config_viz.json
 
 ## Other
 ### user_id, person_id, person_counter

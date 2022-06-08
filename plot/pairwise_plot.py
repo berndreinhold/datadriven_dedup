@@ -18,17 +18,14 @@ takes two dataset files and a duplicates file of these two datasets, which has b
 
 
 
-class pairwise_plot():
+class pairwisePlot():
     """
-    one pairwise plot shows dataset 1, 2 and the duplicates between them on a xy-plot with date on the x-axis and a person counter on the y-axis.
-    this class produces all pairwise plots listed in the config*.json-file read as input.
+    one pairwise plot shows dataset e.g. 1, 2 and the duplicates between them on a xy-plot with date on the x-axis and a person counter on the y-axis.
+    this class produces all pairwise plots listed in the generated config_viz.json-file read as input. (see generate_config_json.py and config_master*.json)
     """
     def __init__(self, config_filename : str, config_path : str):
         """
-        read a config file and populate file names and paths of three csv files:
-            - OpenAPS with key [user_id, date]
-            - OPENonOH with key [user_id, date]
-            - duplicates file containing the duplicates between the two data files with key [user_id_ds1, user_id_ds2, date]
+        read two (generated) config files: 
         """
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
@@ -36,7 +33,7 @@ class pairwise_plot():
         self.input = IO_json["pairwise_plots"]["input"]
         self.output = IO_json["pairwise_plots"]["output"]
         self.plot_config = IO_json["pairwise_plots"]["plot_config"]
-        self.input2 = IO_json["link_all_datasets"]["input"]
+
 
         # read data file
         self.df = pd.read_csv(os.path.join(self.root_data_dir_name, self.input[0], self.input[1]), header=0, parse_dates=[1], index_col=0)
@@ -57,8 +54,8 @@ class pairwise_plot():
         fig, ax = plt.subplots()
 
         dataset_indices = []
-        dataset_indices.append(self.output[pair_i]["data"][0])  # returns e.g. "1"
-        dataset_indices.append(self.output[pair_i]["data"][1])  # returns e.g. "2"
+        dataset_indices.append(self.output[pair_i]["data"][0])  # returns e.g. 1
+        dataset_indices.append(self.output[pair_i]["data"][1])  # returns e.g. 2
         dataset_indices.append(self.output[pair_i]["data"][2])  # returns e.g. "1-2", the duplicates dataset is last, so that it is drawn on top of the others
 
         # affects the sequence in the legend and which one is drawn on top of each other
@@ -76,8 +73,8 @@ class pairwise_plot():
         plt.gcf().autofmt_xdate()
         plt.grid()
 
-        label_0 = self.input2["individual"][dataset_indices[0]][2]  # returns e.g. "OPENonOH"
-        label_1 = self.input2["individual"][dataset_indices[1]][2]
+        label_0 = self.output[pair_i]["axis_label"][0]  # returns e.g. "OPENonOH"
+        label_1 = self.output[pair_i]["axis_label"][1]
         plt.title(f"""{self.plot_config["title_prefix"]}\n{label_0}, {label_1}""")
         plt.xlabel("date")
         plt.ylabel("person index")
@@ -87,9 +84,9 @@ class pairwise_plot():
         plt.legend(loc="upper left", markerscale=4, framealpha=0.5)
         plt.tight_layout()
 
-        print("saved figure: ", os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0], self.output[pair_i]["img_path"][1]))
-        os.makedirs(os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0]), exist_ok=True)
-        plt.savefig(os.path.join(self.root_data_dir_name, self.output[pair_i]["img_path"][0], self.output[pair_i]["img_path"][1]))
+        print("saved figure: ", os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0], self.output[pair_i]["img"][1]))
+        os.makedirs(os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0]), exist_ok=True)
+        plt.savefig(os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0], self.output[pair_i]["img"][1]))
 
 
     def plot_one_dataset(self, ax, i, dataset_indices):
@@ -103,15 +100,16 @@ class pairwise_plot():
         selection = True
         color_, label_ = "", ""
         if i == 0:
-            selection =  ~pd.isna(df[f"user_id_{dataset_indices[0]}"]) & pd.isna(df[f"user_id_{dataset_indices[1]}"])
-            color_ = colors[dataset_indices[i]]
-            label_ = self.input2["individual"][dataset_indices[i]][2]
+            # pm_id as project member id
+            selection =  ~pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & pd.isna(df[f"pm_id_{dataset_indices[1]}"])
+            color_ = colors[f"{dataset_indices[i]}"]
+            label_ = self.output[dataset_indices[i]]["axis_label"][0]
         elif i == 1:
-            selection =  pd.isna(df[f"user_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"user_id_{dataset_indices[1]}"])
-            color_ = colors[dataset_indices[i]]
-            label_ = self.input2["individual"][dataset_indices[i]][2]
+            selection =  pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"pm_id_{dataset_indices[1]}"])
+            color_ = colors[f"{dataset_indices[i]}"]
+            label_ = self.output[dataset_indices[i]]["axis_label"][1]
         elif i == 2:  # duplicates
-            selection =  ~pd.isna(df[f"user_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"user_id_{dataset_indices[1]}"])
+            selection =  ~pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"pm_id_{dataset_indices[1]}"])
             color_ = colors["duplicates"]
             label_ = "duplicates"
         else:
@@ -127,13 +125,13 @@ class pairwise_plot():
         produces several plots, where one plot contains ds1, ds2 and their duplicates. They all share a common x-axis range.
         """
         for i, one_plot_config in enumerate(self.output):
-            if "data" not in one_plot_config or "img_path" not in one_plot_config: continue
+            if "data" not in one_plot_config or "img" not in one_plot_config: continue
             print(i, one_plot_config)
             self.plot(i)
 
 
 def main(config_filename : str = "IO.json", config_path : str = "."):
-    pwp = pairwise_plot(config_filename, config_path)
+    pwp = pairwisePlot(config_filename, config_path)
     pwp.loop()
 
 
