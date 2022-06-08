@@ -118,7 +118,7 @@ class generate_config_json():
         self.output["summary_plots"]["dataset_labels"] = [x[2] for x in self.core["individual"]]
         self.output["summary_plots"]["upsetplot_output"] = self.upsetplot_output()
         self.output["summary_plots"]["venn3plot_output"] = self.venn3plot_output()
-        self.output["summary_plots"]["days_per_person_output"] = ["", "days_per_person_n_dataset.png", "histogram of days per person in the respective datasets"]
+        self.output["summary_plots"]["days_per_person_output"] = ["img/", "days_per_person_n_dataset.png", "histogram of days per person in the respective datasets"]
 
         self.output["pairwise_plots"] = self.pairwise_plots()
 
