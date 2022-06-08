@@ -190,7 +190,7 @@ class generate_config_json():
                 self.config_viz_json()  # includes the pairwise plots
 
 
-def main(config_filename : str = "config_master_sim.json", config_path : str = "."):
+def main(config_filename : str = "config_master_sim.json", config_path : str = "config/"):
     # print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
     ad = generate_config_json(config_filename, config_path)
     ad.loop()
