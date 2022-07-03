@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["config_all_3files_whitelist.json"]
+            "args": ["config_all.json", "/home/reinhold/Daten/OPEN_4ds/generated_config/"]
         }
     ]
 }

@@ -68,6 +68,8 @@ in link_all_datasets.py
 
 
 ## 1. preprocessing step: `python3 preprocessing.py` (per dataset)
+_In the config files the input are the per_day.csv files. Not quite consistent_
+
 preprocessing.py takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files in the _csv_per_measurement_-subdirectory.
  
 _Possible improvement: only a subset of all variables is stored in the csv-output files, store all variables._
