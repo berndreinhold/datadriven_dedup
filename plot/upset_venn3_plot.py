@@ -1,9 +1,11 @@
+from distutils.command.config import config
 import pandas as pd
 from matplotlib_venn import venn3, venn3_circles
 import os
 import json
 from matplotlib import pyplot as plt
 import upsetplot as usp
+import fire
 
 class upsetPlot():
     """
@@ -14,24 +16,24 @@ class upsetPlot():
         read two (generated) config files: 
         """
         f = open(os.path.join(config_path, config_filename))
-        IO_json = json.load(f)
+        self.IO_json = json.load(f)
 
         # var is either "per_pm_id" or "per_pm_id_date"
-        self.root_data_dir_name = IO_json["root_data_dir_name"]
-        input = IO_json["summary_plots"]["input"][var]
-        dataset_labels = IO_json["summary_plots"]["dataset_labels"]
-        self.output = IO_json["summary_plots"]["upsetplot_output"][var]
+        self.root_data_dir_name = self.IO_json["root_data_dir_name"]
+        input = self.IO_json["summary_plots"]["input"][var]
+        dataset_labels = self.IO_json["summary_plots"]["dataset_labels"]
+        self.output = self.IO_json["summary_plots"]["upsetplot_output"][var]
 
-        cols = []
+        self.cols = []
         for ds in dataset_labels:
-            cols.append(ds)
-        print(cols)
+            self.cols.append(ds)
+        print(self.cols)
 
         df = pd.read_csv(os.path.join(self.root_data_dir_name, input[0], input[1]), header=0, parse_dates=[1], index_col=0)
         for i in range(len(dataset_labels)):
-            df[cols[i]] = ~pd.isna(df[f"pm_id_{i}"])  # check for pm_id being present or not
+            df[self.cols[i]] = ~pd.isna(df[f"pm_id_{i}"])  # check for pm_id being present or not
 
-        self.df = df[cols]
+        self.df = df[self.cols]
         print(self.df)
 
 
@@ -60,51 +62,51 @@ class upsetPlot():
 
 class venn3Plot(upsetPlot):
         # for venn3 diagramm
-        output = IO_json["summary_plots"]["venn3plot_output"][var]
-        cols2 = cols[0:2]
-        cols2.append(cols[3])
-        print(cols,cols2)
-        df_v1 = df2[df2[cols[2]]==True].groupby(cols2, dropna=False).agg("count")
-        print(df_v1)
-        #print(type(df_v1))
-        #df_v1.info()
+    def __init__(self, var : str, config_filename : str, config_path : str):
+        super().__init__(var, config_filename, config_path)
+        self.output = self.IO_json["summary_plots"]["venn3plot_output"][var]
+        cols2 = self.cols[0:2]
+        cols2.append(self.cols[3])
+        print(self.cols,cols2)
+        self.df_venn3 = self.df[self.df[self.cols[2]]==False].groupby(cols2, dropna=False).agg("count")
+        print(self.df_venn3)
+        #print(type(self.df_venn3))
+        #self.df_venn3.info()
 
 
-        # %%
-        #print(df_v1.index)
-        #print(df_v1.index.names)
+    def plot(self):
+        #print(self.df_venn3.index)
+        #print(self.df_venn3.index.names)
         plt.rcParams["font.size"] = 18.0  # 10 by default
         data = {}
-        for i in df_v1.index:
-            print(i, df_v1.loc[i])
+        for i in self.df_venn3.index:
+            #print(i, self.df_venn3.loc[i])
             i_str = "".join([str(int(i_k)) for i_k in i])
-            data[i_str] = df_v1.loc[i]
+            data[i_str] = self.df_venn3.loc[i]
         print(data)
 
         plt.figure(figsize=(15,15))
         plt.tight_layout()
-        venn3(subsets = data, set_labels=df_v1.index.names)
-        plt.title(output[2])
-        plt.savefig(os.path.join(root_data_dir_name, output[0], output[1]), bbox_inches='tight')
-        print(f"created image: {os.path.join(root_data_dir_name, output[0], output[1])}")
+        venn3(subsets = data, set_labels=self.df_venn3.index.names)
+        plt.title(self.output[2])
+        plt.savefig(os.path.join(self.root_data_dir_name, self.output[0], self.output[1]), bbox_inches='tight')
+        print(f"created image: {os.path.join(self.root_data_dir_name, self.output[0], self.output[1])}")
 
-        #venn3(subsets = (data["100"], data["010"], data["110"], data["001"], data["101"], data["011"], data["111"]), set_labels=("OPENonOH", "OpenAPS_NS", "OPENonOH_AAPS_Uploader"), alpha=0.5)
-
-        # %%
-        # just for cross check: should return an empty dataframe for the artificial data, a dataframe with all true for the real data
-        df4 = df1[(df1[cols[0]]==True) & (df1[cols[1]]==True) & (df1[cols[2]]==True)]
-        print(df4)
-
-
-
-def main():
+def main(config_filename : str, config_path : str):
     # load the config files and the variables from the upset_plot-section of the config file
-    config_path = "/home/reinhold/Daten/OPEN_4ds/generated_config"
-    config_filename = "config_viz.json"
-    var = "pm_id_only"  # "pm_id_date"
+    #upsP = upsetPlot("per_pm_id", config_filename, config_path)
+    #upsP.plot()
+    venn3P = venn3Plot("per_pm_id", config_filename, config_path)
+    venn3P.plot()
+    # upsP = upsetPlot("per_pm_id_date", config_filename, config_path)
+    # upsP.plot()
 
-    pass
 
 
 if __name__ == "__main__":
-    main()
+
+    # config_path = "/home/reinhold/Daten/OPEN_4ds/generated_config"
+    # config_filename = "config_viz.json"
+    fire.Fire(main)
+
+# %%
