@@ -11,9 +11,7 @@ import pandasgui as pdg
 from numpy import nan
 
 """
-call as: python3 duplicates_plot.py [--config_filename=IO.json] [--config_path="."]
-
-takes two dataset files and a duplicates file of these two datasets, which has been produced by other code (aggregation.py and preprocessing.py)
+call as: python3 pairwise_plot.py [--config_filename=config_viz.json] [--config_path="."]
 """
 
 

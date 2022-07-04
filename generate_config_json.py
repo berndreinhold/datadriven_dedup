@@ -133,7 +133,10 @@ class generate_config_json():
         """
             depending on the number of datasets, the venn3plot is either a single plot or a set of plots
         """
-        assert self.count_datasets <= 3, "venn3plot is only implemented for 3 datasets"
+        #assert self.count_datasets <= 3, "venn3plot is only implemented for 3 datasets"
+        if self.count_datasets > 3: 
+            print("venn3plot is only implemented for 3 datasets, since only one plot is created")
+
         out = {}
         out["per_pm_id"] = ["img/", "venn3plot_per_pm_id.png", "persons in the respective datasets", "per_pm_id"]
         out["per_pm_id_date"] = ["img/", "venn3plot_per_pm_id_date.png", "person-days in the respective datasets", "per_pm_id_date"]
