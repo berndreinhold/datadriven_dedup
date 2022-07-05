@@ -23,6 +23,11 @@ class link_all_datasets_pm_id_only():
     """
     input: the per-day csv files as well as the pairwise duplicate files.
     output: a table with person_ids and pm_ids in each dataset/uploader pair (e.g. OpenAPS/nightscout), aligned where the duplicate files indicate matching pm_ids across dataset/uploader pairs.
+
+    development of this involved a lot of experimentation.
+
+    all individual datasets are merged via their pairwise duplicate project_member_id mappings (produced in pairwise_duplicates.py)
+    A generalized reduce()-function is implemented while applying a dedicated merge function. df_buffer serves as a dataframe, to which all dataframes are merged, all dataframes are reduced to it.
     """
 
     def __init__(self, config_filename : str, config_path : str):
@@ -49,6 +54,17 @@ class link_all_datasets_pm_id_only():
             print(key, self.input_duplicate[key][3], len(self.df["dupl"][key]))
 
         self.out_df_pm_id_only = pd.DataFrame()  # make the dataframe "per pm_id" available throughout the class
+
+    def __del__(self):
+        """
+        save the dataframe to a csv file in the very last moment, not before calculating two custom columns: belongs_to_dataset and count_belongs_to_dataset.
+        It is important to do this last minute, otherwise the belongs_to_dataset-columns cause problems while joining.
+        """
+        df = self.out_df_pm_id_only
+        self.entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
+        df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
+        print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
+
 
     def init_individual_datasets(self):
         """
@@ -126,6 +142,7 @@ class link_all_datasets_pm_id_only():
                 dfs_merged[key][key_dupl] = pd.merge(self.df_pm_id_only["ind"][key], self.df_pm_id_only["dupl"][key_dupl], how="outer", on=f"pm_id_{key}", validate="one_to_one")
                 #dfs_merged[(key, key_dupl)] = self.merge_individual_ds_duplicates(self.df_pm_id_only[key], self.df_pm_id_only[key_dupl], f"pm_id_{key}")
 
+            # custom implementation of a reduce()-function with df_buffer as "store" and custom merge-functions.
             # from here onwards only dfs_merged is being used:
             it = iter(dfs_merged[key])
             if int(key)==0: 
@@ -142,13 +159,6 @@ class link_all_datasets_pm_id_only():
         dfs_merged["last_row"]["person_id"] = range(len(dfs_merged["last_row"]))  # here the person_id variable is created. Important!
 
         self.out_df_pm_id_only = dfs_merged["last_row"]  # make it available throughout the class
-
-    def __del__(self):
-        df = self.out_df_pm_id_only
-        self.entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
-        df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
-        print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
-
 
 
     def entry_datasets_association(self, df):
@@ -176,21 +186,6 @@ class link_all_datasets_pm_id_only():
 
         #pdg.show(df)
 
-
-    # def merge_individual_ds_duplicates(self, df : pd.DataFrame, df_dupl : pd.DataFrame, join_column : str):
-    #     df_merged = pd.merge(df, df_dupl, how="outer", on=join_column)  #e.g. on="pm_id_ds2"
-    
-    #     # process all columns, that are present in both tables, but not the join_column (these are the suffixed columns).
-    #     # transfer the pm_id information from the "column with suffix"-pairs to their columns without suffix
-    #     for col in set(df.columns) & set(df_dupl.columns) - set([join_column]):
-    #         if col.startswith("label"): continue
-    #         self.merge_dataframes_one_column(df_merged, col)
-
-    #     # drop the suffixed columns from the merge, as their content has been transferred to the columns without suffix:
-    #     cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
-    #     df_merged = df_merged[cols]
-
-    #     return df_merged
 
 
     def merge_dataframes(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_column : str) -> pd.DataFrame:
@@ -257,6 +252,10 @@ class link_all_datasets_pm_id_only():
 
 
 class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
+    """
+    very similar to link_all_datasets_pm_id_only and relies on it to fill certain variables.
+    """
+
     def __init__(self, config_filename : str, config_path : str):
         super().__init__(config_filename, config_path)
         self.out_df_pm_id_date = pd.DataFrame()  # make the dataframe "per pm_id_date" available throughout the class, it is the collection of all self.df_pm_id_date-dataframes
