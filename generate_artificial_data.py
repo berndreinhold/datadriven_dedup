@@ -84,6 +84,9 @@ class artificial_datasets():
         return project_m_ids1, project_m_ids2, pm_id_indices1, pm_id_indices2
 
     def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
+        """
+        for a list of pm_ids (project member ids) create a total number of count_days
+        """
 
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
@@ -101,10 +104,13 @@ class artificial_datasets():
         # find a start date and a stop date for the number of days:
         min_date = datetime.date.fromisoformat(self.date_range[0])
         max_date = datetime.date.fromisoformat(self.date_range[1])
-        max_min_date = max_date - min_date  # assumes that self.date_range[1] > self.date_range[0]
+        assert self.date_range[1] > self.date_range[0]  
+        max_min_date = max_date - min_date  # max_min_date needs to be positive
 
+        # ToDo: dict_dates1 is not used
         dict_dates1, dict_dates2 = {}, {}
-        for id in dict_count_days1:
+        for id in dict_count_days1:  # this is a heuristic, expecting that after 100 additional days, enough unique days (see below remain)
+            # if the heuristic fails, the assert below kicks in. Then a more deterministic solution should be implemented
             days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days1[id]))
             start_date = min_date + datetime.timedelta(days=days_offset)
             stop_date = start_date + datetime.timedelta(days=dict_count_days1[id])
@@ -121,6 +127,8 @@ class artificial_datasets():
             for a in range(dict_dates2[id][2].days):
                 dates.append(dict_dates2[id][0] + datetime.timedelta(a))
 
+
+        #dates = sorted(set(dates))
         return dates
 
     def sim_PG_daily_stats(self, count_days) -> tuple:  
@@ -150,6 +158,8 @@ class artificial_datasets():
         """
         return data per day for one dataset
         PG: plasma glucose
+
+        first simulate project member ids, then dates for these pm_ids
         """
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
@@ -161,7 +171,7 @@ class artificial_datasets():
 
         # date,sgv_mean,sgv_std,sgv_min,sgv_max,sgv_count,filename,user_id
         data = []
-        for k in range(count_days):
+        for k in range(len(dates)):
             # do a second pm_id column, if not i==j
             if i==j:
                 # mean, std, min, max, count, filename, pm_id
