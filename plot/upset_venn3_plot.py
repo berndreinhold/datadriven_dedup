@@ -47,7 +47,7 @@ class upsetPlot():
         plt.rcParams.update({"figure.facecolor" : (1.0, 1.0, 1.0, 1.0), "savefig.facecolor": (1.0, 1.0, 1.0, 1.0)})
         plt.figure(figsize=(15,15))
         plt.tight_layout()
-        usp.plot(df2, subset_size='count')
+        usp.plot(df2, subset_size='count', show_counts=True)
         plt.title(self.output[2])
         plt.savefig(os.path.join(self.root_data_dir_name, self.output[0], self.output[1]), bbox_inches='tight')
         print(f"created image: {os.path.join(self.root_data_dir_name, self.output[0], self.output[1])}")
@@ -94,12 +94,15 @@ class venn3Plot(upsetPlot):
 
 def main(config_filename : str, config_path : str):
     # load the config files and the variables from the upset_plot-section of the config file
-    #upsP = upsetPlot("per_pm_id", config_filename, config_path)
-    #upsP.plot()
-    venn3P = venn3Plot("per_pm_id", config_filename, config_path)
-    venn3P.plot()
-    # upsP = upsetPlot("per_pm_id_date", config_filename, config_path)
-    # upsP.plot()
+    ups_p = upsetPlot("per_pm_id", config_filename, config_path)
+    ups_p.plot()
+    ups_p = upsetPlot("per_pm_id_date", config_filename, config_path)
+    ups_p.plot()
+    
+    venn_3p = venn3Plot("per_pm_id", config_filename, config_path)
+    venn_3p.plot()
+    venn_3p = venn3Plot("per_pm_id_date", config_filename, config_path)
+    venn_3p.plot()
 
 
 
