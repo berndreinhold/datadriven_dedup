@@ -64,30 +64,42 @@ class artificialDatasets():
 
     def sim_pm_ids(self, i : int, j : int) -> tuple:
         """
-        8 digit project member IDs
-        it has already been asserted, that count_pm_ids >= count_days
+        i,j are indicating a matrix element of self.matrix_pm_id and self.matrix_day, each representing a dataset
+        it has already been asserted, that count_pm_ids >= count_days in validate_config_file()
+        
+        one tuple i,j represents a list of dates and persons that are present in both datasets i and j.
+        The persons have separate project member ids in the two datasets.
+        (If i==j then it is present in the single dataset i.)
+
+        returns a tuple of arrays of length count_days for every given (i,j): 
+            one representing indices of a persons, for which data is present at any given day
         """
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
+        # these represent the different project member ids in the two datasets for the same person
         pm_ids1 = self.random.integers(10000000,99999999, count_pm_ids)
         pm_ids2 = self.random.integers(10000000,99999999, count_pm_ids)
 
-        pm_id_indices1 = self.random.integers(0, count_pm_ids, count_days)
-        pm_id_indices2 = self.random.integers(0, count_pm_ids, count_days)  # only necessary if not i==j
+        # fill now the array of length count_days:
+        # simulate first the list of person_id indices as an intermediate step to generate the project_m_ids below  
+        # here we have only one 
+        person_id_indices = self.random.integers(0, count_pm_ids, count_days)
+        person_id_indices.sort()
 
-        pm_id_indices1 = sorted(pm_id_indices1)
-        pm_id_indices2 = sorted(pm_id_indices2)  # only necessary if not i==j, but simulated anyway
-
+        # simulate the project_member_ids, that a person has in the two datasets
         project_m_ids1, project_m_ids2 = [],[]
         for k in range(count_days):
-            project_m_ids1.append(pm_ids1[pm_id_indices1[k]])
-            project_m_ids2.append(pm_ids2[pm_id_indices2[k]])
+            project_m_ids1.append(pm_ids1[person_id_indices[k]])
+            project_m_ids2.append(pm_ids2[person_id_indices[k]])
 
-        return project_m_ids1, project_m_ids2, pm_id_indices1, pm_id_indices2
+        return project_m_ids1, project_m_ids2, person_id_indices
 
     def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
         """
-        for a given list of pm_ids (project member ids) create a total number of count_days
+        i,j are indicating a matrix element of self.matrix_pm_id and self.matrix_day, each representing a dataset
+        for a given list of pm_id_indices (an array of length count_days) create a list of dates
+
+        returns a list of dates (an array of length count_days) for every given tuple (i,j)
         """
 
         count_pm_ids = self.matrix_pm_id[i][j]
@@ -103,11 +115,10 @@ class artificialDatasets():
             dict_count_days1[index1] += 1
             dict_count_days2[index2] += 1
 
-        # find a start date and a stop date for the number of days:
         min_date = datetime.date.fromisoformat(self.date_range[0])
         max_date = datetime.date.fromisoformat(self.date_range[1])
-        assert self.date_range[1] > self.date_range[0]  
-        max_min_date = max_date - min_date  # max_min_date needs to be positive
+        # find a start date and a stop date for the number of days:
+        max_min_date = max_date - min_date  # max_min_date validated to be positive in validate_config_file()
 
         # ToDo: dict_dates1 is not used
         dict_dates1, dict_dates2 = {}, {}
@@ -157,13 +168,17 @@ class artificialDatasets():
         # that it is a square matrix (?)
         # that the dimensions of the matrix_pm_id and matrix_day are identical
         # that there are more days than project_member_ids
-        matrix_pm_id = np.ndarray(self.matrix_pm_id)
-        matrix_day = np.ndarray(self.matrix_day)
+        matrix_pm_id = np.array(self.matrix_pm_id)
+        
+        matrix_day = np.array(self.matrix_day)
         assert self.count_datasets == matrix_day.shape[0]
         assert matrix_day.shape[0] == matrix_day.shape[1]  # square matrix       
         assert matrix_day.shape == matrix_pm_id.shape
         
-        assert (matrix_day > matrix_pm_id).all(), f"number of days needs to be bigger or equal to the number of project member ids: {(matrix_day > matrix_pm_id)}"
+        assert (matrix_day >= matrix_pm_id).all(), f"number of days needs to be bigger or equal to the number of project member ids: {(matrix_day > matrix_pm_id)}"
+
+        assert self.date_range[1] > self.date_range[0], f"start and stop date for all datasets need to be meaningful in that stop date is after the start date ({self.date_range})"
+        
 
         print(self.IO_json)
 
