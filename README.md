@@ -1,6 +1,6 @@
 ```
-start date: 20.1.2022 (DD.MM.YYYY)
-last edit: 29.5.2022
+start date: 20.01.2022 (DD.MM.YYYY)
+last edit: 06.07.2022
 ```
 # README.md for finding duplicates in 
 
@@ -8,6 +8,16 @@ last edit: 29.5.2022
 - [README2.md](README2.md) (general pipeline)
 - [OPEN_visualisations.md](OPEN_visualisations.md)
 
+## naming
+a person that donated days of its data can have done so to more than one dataset and uploader
+dataset represents here a dataset-uploader pair.
+In each dataset-uploader pair a person is represented by a separate project member id.
+
+Clarify double meaning of dataset in our context: 
+- at a very basic data science level here in this package a dataset is represented by its data structure. The data structure is also dependent on the uploader (nightscout vs. AAPS uploader) 
+- on a higher level the uploader (nightscout or AAPS Uploader) is not relevant for the underlying data hosted on OpenAPS or Open Humans, thus instead of 4 datasets, there are only 2 datasets (which come each in two different dataformats)
+
+- very generic and in the simulation part 
 
 
 ## process flow
@@ -138,3 +148,4 @@ pip3 install -r requirements.txt
 ```
 first author: Bernd Reinhold
 ```
+
