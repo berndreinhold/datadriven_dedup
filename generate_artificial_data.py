@@ -21,6 +21,8 @@ read a config file:
 - read a matrix relating different datasets to each other for the pm_id table
 - a similar matrix for the number of days 
 
+- simulate project_member_id (and person_ids)
+
 output:
 per_day.csv-files for each dataset containing the correct number of overlapping days and people.
 
@@ -94,7 +96,7 @@ class artificialDatasets():
 
         return project_m_ids1, project_m_ids2, person_id_indices
 
-    def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
+    def sim_dates(self, i : int, j : int, person_id_indices : list) -> list:
         """
         i,j are indicating a matrix element of self.matrix_pm_id and self.matrix_day, each representing a dataset
         for a given list of pm_id_indices (an array of length count_days) create a list of dates
@@ -106,40 +108,31 @@ class artificialDatasets():
         count_days = self.matrix_day[i][j]
 
         # how many days per pm_id:
-        dict_count_days1, dict_count_days2 = {}, {}
+        dict_count_days = {}
         for i in range(count_pm_ids):
-            dict_count_days1[i] = 0
-            dict_count_days2[i] = 0
+            dict_count_days[i] = 0
 
-        for index1, index2 in zip(pm_id_indices1, pm_id_indices2):
-            dict_count_days1[index1] += 1
-            dict_count_days2[index2] += 1
+        for index_ in person_id_indices:
+            dict_count_days[index_] += 1
 
         min_date = datetime.date.fromisoformat(self.date_range[0])
         max_date = datetime.date.fromisoformat(self.date_range[1])
         # find a start date and a stop date for the number of days:
         max_min_date = max_date - min_date  # max_min_date validated to be positive in validate_config_file()
 
-        # ToDo: dict_dates1 is not used
-        dict_dates1, dict_dates2 = {}, {}
-        for id in dict_count_days1:  # this is a heuristic, expecting that after 100 additional days, enough unique days (see below remain)
+        dict_dates = {}
+        for id in dict_count_days:  # this is a heuristic, expecting that after 100 additional days, enough unique days (see below remain)
             # if the heuristic fails, the assert below kicks in. Then a more deterministic solution should be implemented
-            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days1[id]))
+            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days[id]))
             start_date = min_date + datetime.timedelta(days=days_offset)
-            stop_date = start_date + datetime.timedelta(days=dict_count_days1[id])
-            dict_dates1[id] = start_date, stop_date, stop_date - start_date
-
-        for id in dict_count_days2:
-            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days2[id]))
-            start_date = min_date + datetime.timedelta(days=days_offset)
-            stop_date = start_date + datetime.timedelta(days=dict_count_days2[id])
-            dict_dates2[id] = start_date, stop_date, stop_date - start_date
+            stop_date = start_date + datetime.timedelta(days=dict_count_days[id])
+            assert stop_date > start_date
+            dict_dates[id] = start_date, stop_date, stop_date - start_date
 
         dates = []
-        for id in dict_count_days2:
-            for a in range(dict_dates2[id][2].days):
-                dates.append(dict_dates2[id][0] + datetime.timedelta(a))
-
+        for id in dict_count_days:
+            for a in range(dict_dates[id][2].days):
+                dates.append(dict_dates[id][0] + datetime.timedelta(a))
 
         #dates = sorted(set(dates))
         return dates
@@ -192,8 +185,8 @@ class artificialDatasets():
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
         if count_days < 1: print(f"Warning: count_days was < 1 ({count_days}) for (i: {i},j: {j})")
-        pm_ids1, pm_ids2, pm_id_indices1, pm_id_indices2 = self.sim_pm_ids(i, j)
-        dates = self.sim_dates(i, j, pm_id_indices1, pm_id_indices2)
+        pm_ids1, pm_ids2, person_id_indices = self.sim_pm_ids(i, j)
+        dates = self.sim_dates(i, j, person_id_indices)
 
         PG_mean, PG_std, PG_min, PG_max, PG_count = self.sim_PG_daily_stats(count_days)
 
