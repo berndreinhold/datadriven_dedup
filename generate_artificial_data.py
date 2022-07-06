@@ -1,5 +1,6 @@
 #/usr/bin/env python3
 import pandas as pd
+import numpy as np
 import os
 import json
 import fire
@@ -26,7 +27,7 @@ per_day.csv-files for each dataset containing the correct number of overlapping 
 
 """
 
-class artificial_datasets():
+class artificialDatasets():
     def __init__(self, config_filename : str, config_path : str):
         f = open(os.path.join(config_path, config_filename))
         # reading the IO_json config file
@@ -64,6 +65,7 @@ class artificial_datasets():
     def sim_pm_ids(self, i : int, j : int) -> tuple:
         """
         8 digit project member IDs
+        it has already been asserted, that count_pm_ids >= count_days
         """
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
@@ -85,7 +87,7 @@ class artificial_datasets():
 
     def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
         """
-        for a list of pm_ids (project member ids) create a total number of count_days
+        for a given list of pm_ids (project member ids) create a total number of count_days
         """
 
         count_pm_ids = self.matrix_pm_id[i][j]
@@ -151,7 +153,18 @@ class artificial_datasets():
 
 
     def validate_config_file(self):
-        # check for example, that the dimension of the matrix is compatible with the number of datasets
+        # check that the dimension of the matrix is compatible with the number of datasets
+        # that it is a square matrix (?)
+        # that the dimensions of the matrix_pm_id and matrix_day are identical
+        # that there are more days than project_member_ids
+        matrix_pm_id = np.ndarray(self.matrix_pm_id)
+        matrix_day = np.ndarray(self.matrix_day)
+        assert self.count_datasets == matrix_day.shape[0]
+        assert matrix_day.shape[0] == matrix_day.shape[1]  # square matrix       
+        assert matrix_day.shape == matrix_pm_id.shape
+        
+        assert (matrix_day > matrix_pm_id).all(), f"number of days needs to be bigger or equal to the number of project member ids: {(matrix_day > matrix_pm_id)}"
+
         print(self.IO_json)
 
     def create_one_dataset(self, i : int, j : int):
@@ -183,7 +196,9 @@ class artificial_datasets():
     def loop(self):
         """
         loop through all datasets
-        simulate all datasets in the matrix (i, j). Only the datasets for i>=j need to be simulated using create_one_dataset(i,j). (2,1) is the same as (1,2), therefore it can be copied.
+        simulate all datasets in the matrix (i, j). 
+        Only the datasets for i>=j need to be simulated using create_one_dataset(i,j). 
+        (2,1) is the same as (1,2), therefore it can be copied.
         """
         # create days for each combination of (i,j) 
         cols = ["date", "sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count", "filename"]
@@ -224,7 +239,7 @@ class artificial_datasets():
 
 def main(config_filename : str = "config_master_sim.json", config_path : str = "config"):
     # print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
-    ad = artificial_datasets(config_filename, config_path)
+    ad = artificialDatasets(config_filename, config_path)
     ad.loop()
 
 if __name__ == "__main__":
