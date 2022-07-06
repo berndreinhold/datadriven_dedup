@@ -2,6 +2,8 @@
     "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
     "comment0": "pm_id short for project_member_id",
     "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial_4ds/",
+    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
+    "master_script": "master_script.bash",
     "core":
     {
         "comment": "individual datasets: [dir_name, file_name, human-readable label, machine-readable label]",
@@ -33,8 +35,8 @@
     "steps": {
         "preparation" :
         [   
-            "generate_artificial_data",
-            "generate_config_json"
+            "generate_config_json",
+            "generate_artificial_data"
         ],
         "pairwise" : "pairwise_duplicates",
         "all": "link_all_datasets",
