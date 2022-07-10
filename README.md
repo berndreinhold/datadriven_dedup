@@ -8,6 +8,23 @@ last edit: 06.07.2022
 - [README2.md](README2.md) (general pipeline)
 - [OPEN_visualisations.md](OPEN_visualisations.md)
 
+## usage (simulation)
+in order to run the simulation producing artificial data apply the following steps:
+1. open *config_master_sim_4ds.json* and adjust *root_data_dir_name* and *root_software_dir_name*
+2. ```python3 generate_config_json.py config_master_sim_4ds.json config```
+3. ```python3 generate_bash.py config_master_sim_4ds.json```
+4. ```./master_script.bash```
+
+### results/ output
+- check the plots produced in the output dir: ```\[*root_data_dir_name*\]/img/```
+- a considerable amount of info is printed to screen, including some warnings.  
+
+### advantages
+running the simulation has several advantages over running it on real data:
+- it is self-contained, there are no external dependencies, all necessary information is in this repository
+- real data requires preprocessing and format adaptions on a case-by-case basis.
+- it allows anybody to familiarize her/himself with the code, below tips and hints on adjusting it to ones personal dataset are provided.
+
 ## naming
 a person that donated days of its data can have done so to more than one dataset and uploader
 dataset represents here a dataset-uploader pair.
