@@ -27,14 +27,12 @@ class upsetPlot():
         self.cols = []
         for ds in dataset_labels:
             self.cols.append(ds)
-        print(self.cols)
 
         df = pd.read_csv(os.path.join(self.root_data_dir_name, input[0], input[1]), header=0, parse_dates=[1], index_col=0)
         for i in range(len(dataset_labels)):
             df[self.cols[i]] = ~pd.isna(df[f"pm_id_{i}"])  # check for pm_id being present or not
 
         self.df = df[self.cols]
-        print(self.df)
 
 
     def plot(self):
@@ -80,10 +78,8 @@ class venn3Plot(upsetPlot):
         plt.rcParams["font.size"] = 18.0  # 10 by default
         data = {}
         for i in self.df_venn3.index:
-            #print(i, self.df_venn3.loc[i])
             i_str = "".join([str(int(i_k)) for i_k in i])
-            data[i_str] = self.df_venn3.loc[i]
-        print(data)
+            data[i_str] = self.df_venn3.loc[i][self.cols[2]]
 
         plt.figure(figsize=(15,15))
         plt.tight_layout()
