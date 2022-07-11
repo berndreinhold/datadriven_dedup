@@ -11,7 +11,7 @@ last edit: 06.07.2022
 ## usage (simulation)
 in order to run the simulation producing artificial data apply the following steps:
 1. ```git clone https://github.com/berndreinhold/OPEN_diabetes.git``` (or use the ssh-clone)
-2. checkout latest tag, e.g.: ```git checkout ``` (list of available tags) 
+2. checkout latest tag, e.g.: ```git checkout v0.9.1``` (list of available [tags](https://github.com/berndreinhold/OPEN_diabetes/tags)) 
 3. open *config/config_master_sim_4ds.json* and adjust *root_data_dir_name* and *root_software_dir_name*
 4. ```python3 generate_config_json.py config_master_sim_4ds.json config```
     beware: for convenience *root_data_dir_name* is created when running *generate_config_json.py*, if it does not exist!
