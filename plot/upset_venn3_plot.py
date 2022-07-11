@@ -109,12 +109,10 @@ class venn3Plot():
         #print(self.df_venn3.index.names)
         plt.rcParams["font.size"] = 18.0  # 10 by default
         data = {}
-        # cols = [self.cols[i] for i in outside_venn3_dataset_indices]
-        cols = "dataset 3"
 
         for i in self.df_venn3.index:
             i_str = "".join([str(int(i_k)) for i_k in i])
-            data[i_str] = self.df_venn3.loc[i][cols]
+            data[i_str] = self.df_venn3.loc[i]["count"]
 
         plt.figure(figsize=(15,15))
         plt.tight_layout()
@@ -136,21 +134,20 @@ class venn3Plot():
             outside_venn3_dataset_indices = set()
             x = None
             for dataset_index in outside_venn3:
-                in_dataset = outside_venn3[dataset_index]  # needs dataset_index as orig.
-                
+                in_dataset = bool(outside_venn3[dataset_index])  # needs dataset_index as orig.
                 dataset_index = int(dataset_index)
                 outside_venn3_dataset_indices.add(dataset_index)
                 if x:
                     x = x & (self.df[self.cols[dataset_index]]==in_dataset) 
                 else: 
                     x = (self.df[self.cols[dataset_index]]==in_dataset)
-            # ToDo: what happens, if x == None
             # ToDo: better name for x
 
             venn3_dataset_indices = set(range(len(self.dataset_labels))) - outside_venn3_dataset_indices            
             cols2 = [self.cols[i] for i in venn3_dataset_indices]
-            self.df_venn3 = self.df[x].groupby(cols2, dropna=False).agg("count")
-            print(self.df_venn3)
+            df = self.df if x is None else self.df[x]
+            self.df_venn3 = df.groupby(cols2, dropna=False).agg("count")
+            self.df_venn3.columns = ["count"]  # when filtering on all outside_venn3-columns and grouping on the others, only one column remains
 
             self.plot(item["img"], outside_venn3_dataset_indices)
 
@@ -158,17 +155,15 @@ class venn3Plot():
 
 def main(config_filename : str, config_path : str):
     # load the config files and the variables from the upset_plot-section of the config file
-    """
     ups_p = upsetPlot("per_pm_id", config_filename, config_path)
     ups_p.plot()
     ups_p = upsetPlot("per_pm_id_date", config_filename, config_path)
     ups_p.plot()
-    """
-
+    
     venn_3p = venn3Plot("per_pm_id", config_filename, config_path)
     venn_3p.loop()
-    #venn_3p = venn3Plot("per_pm_id_date", config_filename, config_path)
-    #venn_3p.loop()
+    venn_3p = venn3Plot("per_pm_id_date", config_filename, config_path)
+    venn_3p.loop()
 
 
 
