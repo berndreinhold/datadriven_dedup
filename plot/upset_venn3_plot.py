@@ -160,10 +160,10 @@ def main(config_filename : str, config_path : str):
     ups_p = upsetPlot("per_pm_id_date", config_filename, config_path)
     ups_p.plot()
     
-    venn_3p = venn3Plot("per_pm_id", config_filename, config_path)
-    venn_3p.loop()
-    venn_3p = venn3Plot("per_pm_id_date", config_filename, config_path)
-    venn_3p.loop()
+    #venn3_p = venn3Plot("per_pm_id", config_filename, config_path)
+    #venn3_p.loop()
+    #venn3_p = venn3Plot("per_pm_id_date", config_filename, config_path)
+    #venn3_p.loop()
 
 
 
