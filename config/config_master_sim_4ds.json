@@ -1,0 +1,49 @@
+{
+    "comment": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+    "comment0": "pm_id short for project_member_id",
+    "root_data_dir_name": "/home/reinhold/Daten/OPEN_artificial_4ds/",
+    "root_software_dir_name": "/home/reinhold/Software/OPEN/OPEN_diabetes/",
+    "master_script": "master_script.bash",
+    "core":
+    {
+        "comment": "individual datasets: [dir_name, file_name, human-readable label, machine-readable label]",
+        "comment1": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
+        "comment2": "human-readable label is used in plotting, machine-readable label in paths or filenames",
+        "comment3": "labels include the list index",
+        "comment4": "the link indices (0,1,2, ...) can be used as part of the column_names: pm_id_1 refers to the data of the corresponding list index below.",
+        "individual" : [
+            ["ds0/", "ds0_per_day.csv", "dataset 0", "ds0"],
+            ["ds1/", "ds1_per_day.csv", "dataset 1", "ds1"],
+            ["ds2/", "ds2_per_day.csv", "dataset 2", "ds2"],
+            ["ds3/", "ds3_per_day.csv", "dataset 3", "ds3"]
+        ],
+        "output" : {
+            "per_pm_id" : ["", "data_per_pm_id.csv", "per_pm_id"],
+            "per_pm_id_date" : ["", "data_per_pm_id_date.csv", "per_pm_id_date"],
+            "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        }
+    },
+    "artificial_data":{
+        "seed" : "42",
+        "count_datasets" : 4,
+        "date_range": ["2014-10-03", "2020-05-31"],
+        "matrices" : {
+            "per_pm_id" : [[50, 5, 7, 4], [0, 30, 8, 5], [0, 0, 55, 15], [0, 0, 0, 41]],
+            "per_day" : [[950, 100, 225, 75], [0, 610, 100, 70], [0, 0, 810, 350], [0, 0, 0, 715]]
+        }
+    },
+    "steps": {
+        "preparation" :
+        [   
+            "generate_config_json",
+            "generate_artificial_data"
+        ],
+        "pairwise" : "pairwise_duplicates",
+        "all": "link_all_datasets",
+        "viz" : [
+            "date_person_id_plots",
+            "upset_plots",
+            "pairwise_plots"
+        ]
+    }
+}

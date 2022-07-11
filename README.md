@@ -1,6 +1,6 @@
 ```
-start date: 20.1.2022 (DD.MM.YYYY)
-last edit: 29.5.2022
+start date: 20.01.2022 (DD.MM.YYYY)
+last edit: 06.07.2022
 ```
 # README.md for finding duplicates in 
 
@@ -8,6 +8,38 @@ last edit: 29.5.2022
 - [README2.md](README2.md) (general pipeline)
 - [OPEN_visualisations.md](OPEN_visualisations.md)
 
+## usage (simulation)
+in order to run the simulation producing artificial data apply the following steps:
+1. ```git clone https://github.com/berndreinhold/OPEN_diabetes.git``` (or use the ssh-clone)
+2. checkout latest tag, e.g.: ```git checkout ``` (list of available tags) 
+3. open *config/config_master_sim_4ds.json* and adjust *root_data_dir_name* and *root_software_dir_name*
+4. ```python3 generate_config_json.py config_master_sim_4ds.json config```
+    beware: for convenience *root_data_dir_name* is created when running *generate_config_json.py*, if it does not exist!
+5. ```python3 generate_bash.py config_master_sim_4ds.json```
+    This creates master_script.bash. ```chmod u+x master_script.bash``` to give proper executable permissions.  
+6. ```./master_script.bash```
+7. call ```days_per_person_n_dataset.ipynb``` separately (see comment at the end of the output of the previous step)
+
+### results/ output
+- check the plots produced in the output dir: ```\[*root_data_dir_name*\]/img/```
+- a considerable amount of info is printed to screen, including some warnings.  
+
+### advantages
+running the simulation has several advantages over running it on real data:
+- it is self-contained, there are no external dependencies, all necessary information is in this repository
+- real data requires preprocessing and format adaptions on a case-by-case basis.
+- it allows anybody to familiarize her/himself with the code, below tips and hints on adjusting it to ones personal dataset are provided.
+
+## naming
+a person that donated days of its data can have done so to more than one dataset and uploader
+dataset represents here a dataset-uploader pair.
+In each dataset-uploader pair a person is represented by a separate project member id.
+
+Clarify double meaning of dataset in our context: 
+- at a very basic data science level here in this package a dataset is represented by its data structure. The data structure is also dependent on the uploader (nightscout vs. AAPS uploader) 
+- on a higher level the uploader (nightscout or AAPS Uploader) is not relevant for the underlying data hosted on OpenAPS or Open Humans, thus instead of 4 datasets, there are only 2 datasets (which come each in two different dataformats)
+
+- very generic and in the simulation part 
 
 
 ## process flow
@@ -68,6 +100,8 @@ in link_all_datasets.py
 
 
 ## 1. preprocessing step: `python3 preprocessing.py` (per dataset)
+_In the config files the input are the per_day.csv files. Not quite consistent_
+
 preprocessing.py takes the json.gz files of OPENonOH_Data, gunzips them to json-files and selects **noise, sgv, date, dateString** and writes them into csv-files in the _csv_per_measurement_-subdirectory.
  
 _Possible improvement: only a subset of all variables is stored in the csv-output files, store all variables._
@@ -136,3 +170,4 @@ pip3 install -r requirements.txt
 ```
 first author: Bernd Reinhold
 ```
+

@@ -1,5 +1,6 @@
 #/usr/bin/env python3
 import pandas as pd
+import numpy as np
 import os
 import json
 import fire
@@ -20,13 +21,15 @@ read a config file:
 - read a matrix relating different datasets to each other for the pm_id table
 - a similar matrix for the number of days 
 
+- simulate project_member_id (and person_ids)
+
 output:
 per_day.csv-files for each dataset containing the correct number of overlapping days and people.
 
 
 """
 
-class artificial_datasets():
+class artificialDatasets():
     def __init__(self, config_filename : str, config_path : str):
         f = open(os.path.join(config_path, config_filename))
         # reading the IO_json config file
@@ -63,64 +66,75 @@ class artificial_datasets():
 
     def sim_pm_ids(self, i : int, j : int) -> tuple:
         """
-        8 digit project member IDs
+        i,j are indicating a matrix element of self.matrix_pm_id and self.matrix_day, each representing a dataset
+        it has already been asserted, that count_pm_ids >= count_days in validate_config_file()
+        
+        one tuple i,j represents a list of dates and persons that are present in both datasets i and j.
+        The persons have separate project member ids in the two datasets.
+        (If i==j then it is present in the single dataset i.)
+
+        returns a tuple of arrays of length count_days for every given (i,j): 
+            one representing indices of a persons, for which data is present at any given day
         """
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
+        # these represent the different project member ids in the two datasets for the same person
         pm_ids1 = self.random.integers(10000000,99999999, count_pm_ids)
         pm_ids2 = self.random.integers(10000000,99999999, count_pm_ids)
 
-        pm_id_indices1 = self.random.integers(0, count_pm_ids, count_days)
-        pm_id_indices2 = self.random.integers(0, count_pm_ids, count_days)  # only necessary if not i==j
+        # fill now the array of length count_days:
+        # simulate first the list of person_id indices as an intermediate step to generate the project_m_ids below  
+        # here we have only one 
+        person_id_indices = self.random.integers(0, count_pm_ids, count_days)
+        person_id_indices.sort()
 
-        pm_id_indices1 = sorted(pm_id_indices1)
-        pm_id_indices2 = sorted(pm_id_indices2)  # only necessary if not i==j, but simulated anyway
-
+        # simulate the project_member_ids, that a person has in the two datasets
         project_m_ids1, project_m_ids2 = [],[]
         for k in range(count_days):
-            project_m_ids1.append(pm_ids1[pm_id_indices1[k]])
-            project_m_ids2.append(pm_ids2[pm_id_indices2[k]])
+            project_m_ids1.append(pm_ids1[person_id_indices[k]])
+            project_m_ids2.append(pm_ids2[person_id_indices[k]])
 
-        return project_m_ids1, project_m_ids2, pm_id_indices1, pm_id_indices2
+        return project_m_ids1, project_m_ids2, person_id_indices
 
-    def sim_dates(self, i : int, j : int, pm_id_indices1 : list, pm_id_indices2 : list) -> list:
+    def sim_dates(self, i : int, j : int, person_id_indices : list) -> list:
+        """
+        i,j are indicating a matrix element of self.matrix_pm_id and self.matrix_day, each representing a dataset
+        for a given list of pm_id_indices (an array of length count_days) create a list of dates
+
+        returns a list of dates (an array of length count_days) for every given tuple (i,j)
+        """
 
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
 
         # how many days per pm_id:
-        dict_count_days1, dict_count_days2 = {}, {}
+        dict_count_days = {}
         for i in range(count_pm_ids):
-            dict_count_days1[i] = 0
-            dict_count_days2[i] = 0
+            dict_count_days[i] = 0
 
-        for index1, index2 in zip(pm_id_indices1, pm_id_indices2):
-            dict_count_days1[index1] += 1
-            dict_count_days2[index2] += 1
+        for index_ in person_id_indices:
+            dict_count_days[index_] += 1
 
-        # find a start date and a stop date for the number of days:
         min_date = datetime.date.fromisoformat(self.date_range[0])
         max_date = datetime.date.fromisoformat(self.date_range[1])
-        max_min_date = max_date - min_date  # assumes that self.date_range[1] > self.date_range[0]
+        # find a start date and a stop date for the number of days:
+        max_min_date = max_date - min_date  # max_min_date validated to be positive in validate_config_file()
 
-        dict_dates1, dict_dates2 = {}, {}
-        for id in dict_count_days1:
-            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days1[id]))
+        dict_dates = {}
+        for id in dict_count_days:  # this is a heuristic, expecting that after 100 additional days, enough unique days (see below remain)
+            # if the heuristic fails, the assert below kicks in. Then a more deterministic solution should be implemented
+            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days[id]))
             start_date = min_date + datetime.timedelta(days=days_offset)
-            stop_date = start_date + datetime.timedelta(days=dict_count_days1[id])
-            dict_dates1[id] = start_date, stop_date, stop_date - start_date
-
-        for id in dict_count_days2:
-            days_offset = int(self.random.integers(0, max_min_date.days-dict_count_days2[id]))
-            start_date = min_date + datetime.timedelta(days=days_offset)
-            stop_date = start_date + datetime.timedelta(days=dict_count_days2[id])
-            dict_dates2[id] = start_date, stop_date, stop_date - start_date
+            stop_date = start_date + datetime.timedelta(days=dict_count_days[id])
+            assert stop_date > start_date
+            dict_dates[id] = start_date, stop_date, stop_date - start_date
 
         dates = []
-        for id in dict_count_days2:
-            for a in range(dict_dates2[id][2].days):
-                dates.append(dict_dates2[id][0] + datetime.timedelta(a))
+        for id in dict_count_days:
+            for a in range(dict_dates[id][2].days):
+                dates.append(dict_dates[id][0] + datetime.timedelta(a))
 
+        #dates = sorted(set(dates))
         return dates
 
     def sim_PG_daily_stats(self, count_days) -> tuple:  
@@ -143,25 +157,42 @@ class artificial_datasets():
 
 
     def validate_config_file(self):
-        # check for example, that the dimension of the matrix is compatible with the number of datasets
+        # check that the dimension of the matrix is compatible with the number of datasets
+        # that it is a square matrix (?)
+        # that the dimensions of the matrix_pm_id and matrix_day are identical
+        # that there are more days than project_member_ids
+        matrix_pm_id = np.array(self.matrix_pm_id)
+        
+        matrix_day = np.array(self.matrix_day)
+        assert self.count_datasets == matrix_day.shape[0]
+        assert matrix_day.shape[0] == matrix_day.shape[1]  # square matrix       
+        assert matrix_day.shape == matrix_pm_id.shape
+        
+        assert (matrix_day >= matrix_pm_id).all(), f"number of days needs to be bigger or equal to the number of project member ids: {(matrix_day > matrix_pm_id)}"
+
+        assert self.date_range[1] > self.date_range[0], f"start and stop date for all datasets need to be meaningful in that stop date is after the start date ({self.date_range})"
+        
+
         print(self.IO_json)
 
     def create_one_dataset(self, i : int, j : int):
         """
         return data per day for one dataset
         PG: plasma glucose
+
+        first simulate project member ids, then dates for these pm_ids
         """
         count_pm_ids = self.matrix_pm_id[i][j]
         count_days = self.matrix_day[i][j]
         if count_days < 1: print(f"Warning: count_days was < 1 ({count_days}) for (i: {i},j: {j})")
-        pm_ids1, pm_ids2, pm_id_indices1, pm_id_indices2 = self.sim_pm_ids(i, j)
-        dates = self.sim_dates(i, j, pm_id_indices1, pm_id_indices2)
+        pm_ids1, pm_ids2, person_id_indices = self.sim_pm_ids(i, j)
+        dates = self.sim_dates(i, j, person_id_indices)
 
         PG_mean, PG_std, PG_min, PG_max, PG_count = self.sim_PG_daily_stats(count_days)
 
         # date,sgv_mean,sgv_std,sgv_min,sgv_max,sgv_count,filename,user_id
         data = []
-        for k in range(count_days):
+        for k in range(len(dates)):
             # do a second pm_id column, if not i==j
             if i==j:
                 # mean, std, min, max, count, filename, pm_id
@@ -173,7 +204,9 @@ class artificial_datasets():
     def loop(self):
         """
         loop through all datasets
-        simulate all datasets in the matrix (i, j). Only the datasets for i>=j need to be simulated using create_one_dataset(i,j). (2,1) is the same as (1,2), therefore it can be copied.
+        simulate all datasets in the matrix (i, j). 
+        Only the datasets for i>=j need to be simulated using create_one_dataset(i,j). 
+        (2,1) is the same as (1,2), therefore it can be copied.
         """
         # create days for each combination of (i,j) 
         cols = ["date", "sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count", "filename"]
@@ -214,7 +247,7 @@ class artificial_datasets():
 
 def main(config_filename : str = "config_master_sim.json", config_path : str = "config"):
     # print("you can run it on one duplicate plot-pair, or you run it on all of them as they are listed in config.json. See class all_duplicates.")
-    ad = artificial_datasets(config_filename, config_path)
+    ad = artificialDatasets(config_filename, config_path)
     ad.loop()
 
 if __name__ == "__main__":
