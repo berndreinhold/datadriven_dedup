@@ -189,9 +189,9 @@ class generate_config_json():
         self.output["summary_plots"]["input"] = self.core["output"]
         self.output["summary_plots"]["dataset_labels"] = [x[2] for x in self.core["individual"]]
         self.output["summary_plots"]["upsetplot_output"] = self.upsetplot_output()
-        self.output["summary_plots"]["venn3plot_output"] = self.venn3plot_output()
         self.output["summary_plots"]["days_per_person_output"] = ["img/", "days_per_person_n_dataset.png", "histogram of days per person in the respective datasets"]
 
+        self.output["venn3_plots"] = self.venn3_plots()
         self.output["pairwise_plots"] = self.pairwise_plots()
 
     def upsetplot_output(self):
@@ -201,19 +201,42 @@ class generate_config_json():
         out["comment"] = "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         return out
 
-    def venn3plot_output(self):
+    def venn3_plots(self):
         """
-            depending on the number of datasets, the venn3plot is either a single plot or a set of plots
+            a venn3 diagram involves three datasets.
+            If more datasets are present then all datasets except three need to be held fixed for one given venn3-plot. 
+            Then the variables, that are being held fixed, need to be looped through. 
         """
-        #assert self.count_datasets <= 3, "venn3plot is only implemented for 3 datasets"
-        if self.count_datasets > 3: 
-            print("venn3plot is only implemented for 3 datasets, since only one plot is created")
 
         out = {}
-        out["per_pm_id"] = ["img/", "venn3plot_per_pm_id.png", "persons in the respective datasets", "per_pm_id"]
-        out["per_pm_id_date"] = ["img/", "venn3plot_per_pm_id_date.png", "person-days in the respective datasets", "per_pm_id_date"]
-        out["comment"] = "[dir_name, file_name, title], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
+        out["input"] = self.core["output"]
+        for var in ["per_pm_id", "per_pm_id_date"]:
+                out[f"output_{var}"] = self.list_venn3(var)    
+                
         return out
+
+    def list_venn3(self, var):
+        for outside_venn3_index in range(len()):
+            self.list_venn3(self, var, outside_venn3_index)
+        
+
+    def list_venn3(self, var, outside_venn3_index) -> list:
+        """
+        return a list of the venn3 duplicates for the datasets to be written to the config file
+        """
+        plot_pairs = []
+        for i,ds in enumerate(self.core["individual"]):
+            for i2, ds2 in enumerate(self.core["individual"]):
+                one_pair = {}
+                if i < i2:
+                    one_pair["data"] = [i, i2, f"{i}-{i2}"]
+                    one_pair["axis_label"] = [f"{ds[2]}", f"{ds2[2]}"]
+                    one_pair["img"] = ["img/",f"pairwise_plot_{ds[3]}_{ds2[3]}_per_day.png", f"duplicates ({ds[2]}-{ds2[2]})", f"duplicates_{ds[3]}_{ds2[3]}", f"{i}-{i2}"]
+                    if i==0: one_pair["comment"] = "the list of keys in 'data' refer back to section 'link_all_datasets' -> 'input' and 'plots' -> 'dataset_labels'"
+                    plot_pairs.append(one_pair)
+        
+        return sorted(plot_pairs, key=lambda x: x["data"])
+
 
     def pairwise_plots(self):
         """
