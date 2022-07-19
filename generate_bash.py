@@ -50,7 +50,7 @@ python3 {self.root_software_dir_name}/generate_config_json.py config_master_sim_
 python3 {self.root_software_dir_name}/pairwise_duplicates.py config_pairwise.json {self.root_data_dir_name}/generated_config/
 python3 {self.root_software_dir_name}/link_all_datasets.py config_all.json {self.root_data_dir_name}/generated_config/
 python3 {self.root_software_dir_name}/plot/upset_venn3_plot.py config_viz.json {self.root_data_dir_name}/generated_config/
-call "days_per_person_n_dataset.ipynb" separately (paths need to be adjusted inside this notebook)
+echo "call 'days_per_person_n_dataset.ipynb' separately (paths need to be adjusted inside this notebook)"
         """
         return buffer
 
