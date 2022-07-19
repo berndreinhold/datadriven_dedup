@@ -23,6 +23,7 @@
         }
     },
     "project_member_id_list" : {
+        "comment July 19 2022" : "copied from config_all_3files_whitelist.json. For data and output see OPEN_1sttry.",
         "comment" : "[dir_name, file_name, list(dataset keys)] is the file- and dir-name of the list of project member_ids, which are used to restrict the project member ids in the data_per_user_id.csv and data_per_user_id_date.csv",
         "comment2" : "dataset keys are the ones from 'input' -> 'individual'",
         "list" : ["", "WhiteList.txt", ["2", "3"]],
