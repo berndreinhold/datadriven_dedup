@@ -7,7 +7,6 @@ import matplotlib.dates as mdates
 import os
 import json
 import fire
-import pandasgui as pdg
 from numpy import nan
 
 """

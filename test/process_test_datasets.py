@@ -4,7 +4,6 @@ import glob
 import logging
 import os
 import pandas as pd
-import pandasgui as pdg
 """
 
 """
@@ -123,13 +122,10 @@ def main(conflict_case : int = 1):
     cols = [c for c in df_merged.columns if not c.endswith("_x") and not c.endswith("_y")]
     df_merged = df_merged[cols]
 
-    pdg.show(df_merged)
-
 
 def per_column(df_merged : pd.DataFrame, col_name : str):
     #df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), [f"{col_name}_x", f"{col_name}_y"]].apply(lambda x: get_the_right_value(x[0],x[1]), axis=1)
     df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"]))].apply(lambda row: get_the_right_value2(row, [f"{col_name}_x", f"{col_name}_y"]), axis=1)
-    #pdg.show(df_merged)
 
     # check for uniqueness
     if not len(df_merged.loc[~pd.isna(df_merged[col_name]), col_name]) == len(df_merged.loc[~pd.isna(df_merged[col_name]), col_name].unique()):

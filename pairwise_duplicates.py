@@ -3,7 +3,6 @@ import json
 import os
 import pandas as pd
 import glob
-import pandasgui as pdg
 import fire
 
 
@@ -56,8 +55,6 @@ class duplicatesPairwise():
             (out.diff_sgv_count*out.diff_sgv_count < self.diff_svg_threshold)]
         df3 = df2[[f"pm_id{id[0]}", f"pm_id{id[1]}", "date", "diff_sgv_mean", "diff_sgv_std", "diff_sgv_min", "diff_sgv_max", "diff_sgv_count", 
             f"filename{id[0]}", f"filename{id[1]}"]].sort_values(by=[f"pm_id{id[0]}", f"pm_id{id[1]}", "date"])
-
-        if debug and len(df3)>0: gui = pdg.show(df3)
 
         df3.to_csv(os.path.join(self.root_data_dir_name, self.json_output[0], self.json_output[1]))
         print(os.path.join(self.root_data_dir_name, self.json_output[0], self.json_output[1]) + " created")

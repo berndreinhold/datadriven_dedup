@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import json
 import fire
-import pandasgui as pdg
 from numpy import nan
 import re
 from functools import reduce
@@ -184,8 +183,6 @@ class link_all_datasets_pm_id_only():
         df["belongs_to_datasets"] = df.apply(lambda row: belongs_to_datasets(row, df.columns), axis=1)
         df["count_belongs_to_datasets"] = df.apply(lambda x: len(x["belongs_to_datasets"].split(",")), axis=1)
 
-        #pdg.show(df)
-
 
 
     def merge_dataframes(self, df1 : pd.DataFrame, df2 : pd.DataFrame, join_column : str) -> pd.DataFrame:
@@ -215,7 +212,6 @@ class link_all_datasets_pm_id_only():
         #df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), [f"{col_name}_x", f"{col_name}_y"]].apply(lambda x: get_the_right_value(x[0],x[1]), axis=1)
         df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) |  ~pd.isna(df_merged[f"{col_name}_y"])), col_name] = df_merged.loc[(~pd.isna(df_merged[f"{col_name}_x"]) | \
             ~pd.isna(df_merged[f"{col_name}_y"]))].apply(lambda row: self.use_not_na_value(row, [f"{col_name}_x", f"{col_name}_y"]), axis=1)
-        #pdg.show(df_merged)
 
         # check for uniqueness
         if not len(df_merged.loc[~pd.isna(df_merged[col_name]), col_name]) == len(df_merged.loc[~pd.isna(df_merged[col_name]), col_name].unique()):
