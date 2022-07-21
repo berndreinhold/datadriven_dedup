@@ -25,7 +25,7 @@ class duplicates_preprocessing(object):
     it is the OPENonOH_NS preprocessing class
     """
 
-    def __init__(self, config_filename : str, config_path : str, dataset : str = "OPENonOH", console_log_level = logging.INFO):
+    def __init__(self, config_filename : str, config_path : str, dataset : str = "OPENonOH_NS", console_log_level = logging.INFO):
         """
         read a config file and populate input and output file names and paths:
             - output a csv file with key [user_id, date] and one entry per measurement
@@ -35,7 +35,8 @@ class duplicates_preprocessing(object):
         f = open(os.path.join(config_path, config_filename))
         IO_json = json.load(f)
         self.dataset = dataset
-        
+        self.root_data_dir_name = IO_json["root_data_dir_name"]
+
         datasets = [x for x in IO_json["duplicates_preprocessing"].keys() if "comment" and "logging" not in x]
         assert(self.dataset in datasets)
 
@@ -44,7 +45,7 @@ class duplicates_preprocessing(object):
         self.json_output = IO_json["duplicates_preprocessing"][self.dataset]["output"]
         self.json_logging = IO_json["duplicates_preprocessing"]["logging"]
 
-        self.in_dir_name = self.json_input["dir_name"]
+        self.in_dir_name = os.path.join(self.root_data_dir_name, self.json_input["dir_name"])
         try:
             self.in_columns = IO_json["duplicates_preprocessing"][self.dataset]["columns"]
             self.out_columns = IO_json["duplicates_preprocessing"][self.dataset]["columns"]
@@ -110,18 +111,21 @@ class duplicates_preprocessing(object):
                     pd.to_datetime(entry["dateString"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
                     data.append([entry[column] for column in self.in_columns])
                 except KeyError as e:
+                    logging.debug("KeyError: ", e, entry)
                     if e in self.key_error_statistics.keys():
                         self.key_error_statistics[e] += 1
                     else:
                         self.key_error_statistics[e] = 1            
                 except Exception as e:
+                    logging.debug("Error: ", e, entry["dateString"])
                     if e in self.error_statistics.keys():
                         self.error_statistics[e] += 1
                     else:
                         self.error_statistics[e] = 1            
                     
             df = pd.DataFrame(data=data, columns=self.out_columns)
-            df.to_csv(os.path.join(self.out_dir_name, outfile_name))
+            os.makedirs(os.path.join(self.root_data_dir_name, self.out_dir_name), exist_ok=True)
+            df.to_csv(os.path.join(self.root_data_dir_name, self.out_dir_name, outfile_name))
             del entries
         del data
 
@@ -373,7 +377,8 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
                         self.error_statistics[e] = 1            
                     
             df = pd.DataFrame(data=data, columns=self.out_columns)
-            df.to_csv(os.path.join(self.out_dir_name, outfile_name))
+            os.makedirs(os.path.join(self.root_data_dir_name, self.out_dir_name), exist_ok=True)
+            df.to_csv(os.path.join(self.root_data_dir_name, self.out_dir_name, outfile_name))
             del entries
         del data
 
@@ -487,14 +492,14 @@ def main(dataset : str, config_filename : str = "IO.json", config_path : str = "
     elif dataset == "OpenAPS_AAPS_Uploader": 
         dpp = duplicates_preprocessing_OpenAPS_AAPS_Uploader(config_filename, config_path)
         dpp.loop()
-    elif dataset == "OPENonOH":
+    elif dataset == "OPENonOH" or dataset == "OPENonOH_NS":
         dpp = duplicates_preprocessing(config_filename, config_path)
         dpp.loop()
     elif dataset == "OPENonOH_AAPS_Uploader":
         dpp = duplicates_preprocessing_OPENonOH_AAPS_Uploader(config_filename, config_path)
         dpp.loop()
     else: 
-        logging.error("unknown dataset: {dataset}, should be one of ['OpenAPS_NS', 'OPENonOH', 'OpenAPS_AAPS_Uploader']")
+        logging.error(f"unknown dataset: {dataset}, should be one of ['OpenAPS_NS', 'OPENonOH' or 'OPENonOH_NS', 'OpenAPS_AAPS_Uploader']")
 
 if __name__ == "__main__":
     fire.Fire(main)
