@@ -11,7 +11,7 @@ import numpy as np
 
 
 """
-call as: python3 duplicates_preprocessing.py --dataset=[...] [--config_filename=IO.json] [--config_path="."]
+call as: python3 duplicates_json2csv.py --dataset=[...] [--config_filename=IO.json] [--config_path="."]
 
 takes a directory containing files with a file_ending specified in the config file (typically: "json") and transforms them into csv files.
 
@@ -19,11 +19,11 @@ takes a directory containing files with a file_ending specified in the config fi
 Params = namedtuple("Params", ['head', 'tail', 'filename', 'first', 'second'])
 
 
-class duplicates_preprocessing(object):
+class duplicates_json2csv(object):
     """
     process the BG data of OPENonOH
     it is on the one hand a base class for the other combinations of (OpenAPS, OPENonOH) and (NightScout (NS), AAPS_Uploader) processing classes and 
-    it is the OPENonOH_NS preprocessing class
+    it is the OPENonOH_NS json2csv class
     """
 
     def __init__(self, config_filename: str, config_path: str, dataset: str = "OPENonOH_NS", console_log_level=logging.INFO):
@@ -38,19 +38,19 @@ class duplicates_preprocessing(object):
         self.dataset = dataset
         self.root_data_dir_name = IO_json["root_data_dir_name"]
 
-        datasets = [x for x in IO_json["duplicates_preprocessing"].keys(
+        datasets = [x for x in IO_json["duplicates_json2csv"].keys(
         ) if "comment" and "logging" not in x]
         assert(self.dataset in datasets)
 
-        self.json_input = IO_json["duplicates_preprocessing"][self.dataset]["input"]
-        self.json_output = IO_json["duplicates_preprocessing"][self.dataset]["output"]
-        self.json_logging = IO_json["duplicates_preprocessing"]["logging"]
+        self.json_input = IO_json["duplicates_json2csv"][self.dataset]["input"]
+        self.json_output = IO_json["duplicates_json2csv"][self.dataset]["output"]
+        self.json_logging = IO_json["duplicates_json2csv"]["logging"]
 
         self.in_dir_name = os.path.join(
             self.root_data_dir_name, self.json_input["dir_name"])
         try:
-            self.in_columns = IO_json["duplicates_preprocessing"][self.dataset]["columns"]
-            self.out_columns = IO_json["duplicates_preprocessing"][self.dataset]["columns"]
+            self.in_columns = IO_json["duplicates_json2csv"][self.dataset]["columns"]
+            self.out_columns = IO_json["duplicates_json2csv"][self.dataset]["columns"]
         except KeyError as e:
             self.in_columns = self.json_input["columns"]
             self.out_columns = self.json_output["columns"]
@@ -277,7 +277,7 @@ class duplicates_preprocessing(object):
         self.all_entries_json2csv()
 
 
-class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
+class duplicates_json2csv_OpenAPS_NS(duplicates_json2csv):
     """
     OpenAPS Nightscout files: direct-sharing-31
     """
@@ -345,7 +345,7 @@ class duplicates_preprocessing_OpenAPS_NS(duplicates_preprocessing):
                     self.error_statistics[e] = 1
 
 
-class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_OpenAPS_NS):
+class duplicates_json2csv_OpenAPS_AAPS_Uploader(duplicates_json2csv_OpenAPS_NS):
     """
     OpenAPS AAPS_Uploader: direct-sharing-396
     """
@@ -460,7 +460,7 @@ class duplicates_preprocessing_OpenAPS_AAPS_Uploader(duplicates_preprocessing_Op
                     self.error_statistics[e] = 1
 
 
-class duplicates_preprocessing_OPENonOH_AAPS_Uploader(duplicates_preprocessing_OpenAPS_AAPS_Uploader):
+class duplicates_json2csv_OPENonOH_AAPS_Uploader(duplicates_json2csv_OpenAPS_AAPS_Uploader):
     """
     OPENonOH AAPS_Uploader: direct-sharing-396
     """
@@ -533,17 +533,17 @@ def main(dataset: str, config_filename: str = "IO.json", config_path: str = ".",
         print("not yet implemented: requires translation of info to logging.INFO, etc.")
 
     if dataset == "OpenAPS_NS":  # is used as a key in the IO.json-file
-        dpp = duplicates_preprocessing_OpenAPS_NS(config_filename, config_path)
+        dpp = duplicates_json2csv_OpenAPS_NS(config_filename, config_path)
         dpp.loop()
     elif dataset == "OpenAPS_AAPS_Uploader":
-        dpp = duplicates_preprocessing_OpenAPS_AAPS_Uploader(
+        dpp = duplicates_json2csv_OpenAPS_AAPS_Uploader(
             config_filename, config_path)
         dpp.loop()
     elif dataset == "OPENonOH" or dataset == "OPENonOH_NS":
-        dpp = duplicates_preprocessing(config_filename, config_path)
+        dpp = duplicates_json2csv(config_filename, config_path)
         dpp.loop()
     elif dataset == "OPENonOH_AAPS_Uploader":
-        dpp = duplicates_preprocessing_OPENonOH_AAPS_Uploader(
+        dpp = duplicates_json2csv_OPENonOH_AAPS_Uploader(
             config_filename, config_path)
         dpp.loop()
     else:
