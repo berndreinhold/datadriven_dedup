@@ -28,6 +28,7 @@ class generate_config_json():
         self.root_data_dir_name = IO_json["root_data_dir_name"]
         self.core = IO_json["core"]
         self.steps = IO_json["steps"]
+        self.logging = IO_json["logging"]
 
         # self.output = IO_json["output"]
         self.count_datasets = len(self.core["individual"])
@@ -51,6 +52,9 @@ class generate_config_json():
         output_json["summary_plots"] = deepcopy(self.output["summary_plots"])
         output_json["pairwise_plots"] = deepcopy(self.output["pairwise_plots"])
         self.save_config_json(output_json, "config_viz.json")
+        output_json = { "root_data_dir_name": self.root_data_dir_name}
+        output_json["duplicates_preprocessing"] = deepcopy(self.output["duplicates_preprocessing"])
+        self.save_config_json(output_json, "config_preprocessing.json")
 
 
 
@@ -65,8 +69,25 @@ class generate_config_json():
         # check for example, that the dimension of the matrix is compatible with the number of datasets
         print(self.IO_json)
 
-    def individual_dataset(self):
-        pass
+    def config_individual_dataset(self):
+        self.output["duplicates_preprocessing"] = dict()
+        self.output["duplicates_preprocessing"] = self.dict_individual_preprocessing()
+        self.output["duplicates_preprocessing"]["logging"] = self.logging
+
+    def dict_individual_preprocessing(self) -> dict:
+        """
+        return a dict of the preprocessing of the individual datasets
+        """
+        individual_ds = dict()
+        for i,ds in enumerate(self.core["individual"]):
+                individual_ds[ds[3]] = dict()
+                individual_ds[ds[3]]["input"] = dict()
+                individual_ds[ds[3]]["output"] = dict()
+                individual_ds[ds[3]]["columns"] = ["noise", "sgv", "date", "dateString"]
+                individual_ds[ds[3]]["input"]["file_ending"] = "json"
+                individual_ds[ds[3]]["input"]["dir_name"] = "n=101_OPENonOH_07.07.2022"
+                individual_ds[ds[3]]["output"]["dir_name"] = os.path.join(ds[0], "per_measurement_csv")
+        return individual_ds
 
 
     def config_pairwise_json(self):
@@ -97,12 +118,21 @@ class generate_config_json():
 
         # comment for the created config_all.json file
         self.output["link_all_datasets"] = {}
+        comment_keys = []
         for key in self.core:
             if "comment" in key:
                 self.output["link_all_datasets"][key] = self.core[key]
-        if "comment0" in self.output["link_all_datasets"]:  # let's avoid overwriting comments in the config file
-            raise KeyError(f"comment0 already in config file: {self.output['link_all_datasets']['comment0']}")
-        self.output["link_all_datasets"]["comment0"] = "duplicate datasets: [dir_name, file_name, human-readable label, machine-readable label, id]"
+                comment_keys.append(key)
+        #if "comment0" in self.output["link_all_datasets"]:  # let's avoid overwriting comments in the config file
+        #    raise KeyError(f"comment0 already in config file: {self.output['link_all_datasets']['comment0']}")
+        new_comment_key = ""
+        for i in range(10000):
+            if f"comment{i}" in comment_keys: continue
+            else: 
+                new_comment_key = f"comment{i}"
+                break
+
+        self.output["link_all_datasets"][new_comment_key] = "duplicate datasets: [dir_name, file_name, human-readable label, machine-readable label, id]"
         self.output["link_all_datasets"]["individual"] = self.core["individual"]
         duplicates = [x["output"] for x in self.list_pairwise_duplicates()]
         self.output["link_all_datasets"]["duplicate"] = duplicates
@@ -184,8 +214,11 @@ class generate_config_json():
         """
         for step in self.steps:
             if step == "individual_dataset":
-                pass
-            elif step == "pairwise":  # this is not on the pairwise_plots, rather on pairwise dayly dataset similarity calculation
+                # only required for "real" data (in contrast to "artificial" data simulated in this package) 
+                self.config_individual_dataset()
+            elif step == "pairwise":  
+                # this is not on the pairwise_plots, rather on pairwise dayly dataset similarity calculation
+                # for pairwise plots see config_viz__json()
                 self.config_pairwise_json()
             elif step == "all":
                 self.config_all_json()
