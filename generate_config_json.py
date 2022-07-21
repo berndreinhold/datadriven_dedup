@@ -53,7 +53,8 @@ class generate_config_json():
         output_json["pairwise_plots"] = deepcopy(self.output["pairwise_plots"])
         self.save_config_json(output_json, "config_viz.json")
         output_json = { "root_data_dir_name": self.root_data_dir_name}
-        output_json["duplicates_preprocessing"] = deepcopy(self.output["duplicates_preprocessing"])
+        output_json["duplicates_json2csv"] = deepcopy(self.output["duplicates_json2csv"])
+        output_json["duplicates_aggregation"] = deepcopy(self.output["duplicates_aggregation"])
         self.save_config_json(output_json, "config_preprocessing.json")
 
 
@@ -70,23 +71,43 @@ class generate_config_json():
         print(self.IO_json)
 
     def config_individual_dataset(self):
-        self.output["duplicates_preprocessing"] = dict()
-        self.output["duplicates_preprocessing"] = self.dict_individual_preprocessing()
-        self.output["duplicates_preprocessing"]["logging"] = self.logging
+        self.output["duplicates_json2csv"] = dict()
+        self.output["duplicates_json2csv"] = self.dict_individual_json2csv()
+        self.output["duplicates_json2csv"]["logging"] = self.logging
+        self.output["duplicates_aggregation"] = dict()
+        self.output["duplicates_aggregation"] = self.dict_individual_aggregation()
+        self.output["duplicates_aggregation"]["logging"] = self.logging
 
-    def dict_individual_preprocessing(self) -> dict:
+
+    def dict_individual_json2csv(self) -> dict:
         """
-        return a dict of the preprocessing of the individual datasets
+        return a dict of the json2csv of the individual datasets
+        """
+        individual_ds = dict()
+        for i,ds in enumerate(self.core["individual"]):
+                individual_ds[ds[3]] = dict()
+                individual_ds[ds[3]]["columns"] = ["noise", "sgv", "date", "dateString"]
+                individual_ds[ds[3]]["input"] = dict()
+                individual_ds[ds[3]]["input"]["file_ending"] = "json"
+                individual_ds[ds[3]]["input"]["dir_name"] = "n=101_OPENonOH_07.07.2022"
+                individual_ds[ds[3]]["output"] = dict()
+                individual_ds[ds[3]]["output"]["dir_name"] = os.path.join(ds[0], "per_measurement_csv")
+        return individual_ds
+
+
+    def dict_individual_aggregation(self) -> dict:
+        """
+        return a dict of the aggregation of the individual datasets
         """
         individual_ds = dict()
         for i,ds in enumerate(self.core["individual"]):
                 individual_ds[ds[3]] = dict()
                 individual_ds[ds[3]]["input"] = dict()
+                individual_ds[ds[3]]["input"]["file_pattern"] = "*entries*.csv"
+                individual_ds[ds[3]]["input"]["dir_name"] = os.path.join(ds[0], "per_measurement_csv")
                 individual_ds[ds[3]]["output"] = dict()
-                individual_ds[ds[3]]["columns"] = ["noise", "sgv", "date", "dateString"]
-                individual_ds[ds[3]]["input"]["file_ending"] = "json"
-                individual_ds[ds[3]]["input"]["dir_name"] = "n=101_OPENonOH_07.07.2022"
-                individual_ds[ds[3]]["output"]["dir_name"] = os.path.join(ds[0], "per_measurement_csv")
+                individual_ds[ds[3]]["output"]["dir_name"] = ds[0]
+                individual_ds[ds[3]]["output"]["file_name"] = f"{ds[0]}_per_day_with-self-duplicates.csv"
         return individual_ds
 
 
