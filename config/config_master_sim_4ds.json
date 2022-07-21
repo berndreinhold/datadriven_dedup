@@ -45,5 +45,9 @@
             "upset_plots",
             "pairwise_plots"
         ]
+    },
+    "logging" : {
+        "comment" : "dir_name is relative to root_data_dir_name as well",
+        "dir_name" : "log/"
     }
 }
