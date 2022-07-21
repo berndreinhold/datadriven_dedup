@@ -5,13 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Aktuelle Datei",
+            "name": "Python: config master",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["config_all.json", "/home/reinhold/Daten/OPEN_4ds/generated_config/"]
+            "args": [
+                "config_master_4ds.json",
+                "config/"
+            ]
+        },
+        {
+            "name": "Python: generated config: preprocessing",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--dataset", "OPENonOH_NS",
+                "--config_filename", "config_preprocessing.json",
+                "--config_path", "/home/reinhold/Daten/OPEN_4ds/generated_config/"
+            ]
         }
     ]
 }
