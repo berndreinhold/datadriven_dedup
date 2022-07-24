@@ -48,20 +48,8 @@ class duplicates_json2csv(object):
 
         self.in_dir_name = os.path.join(
             self.root_data_dir_name, self.json_input["dir_name"])
-        try:
-            self.in_columns = IO_json["duplicates_json2csv"][self.dataset]["columns"]
-            self.out_columns = IO_json["duplicates_json2csv"][self.dataset]["columns"]
-        except KeyError as e:
-            self.in_columns = self.json_input["columns"]
-            self.out_columns = self.json_output["columns"]
-
-        try:
-            self.in_columns = self.json_input["columns"]
-            self.out_columns = self.json_output["columns"]
-        except KeyError as e:
-            if self.in_columns is None or self.out_columns is None:
-                raise KeyError(
-                    "Check the config json file. Column names must be present at the one of two levels in the config json file.")
+        self.in_columns = IO_json["columns"]
+        self.out_columns = self.in_columns 
 
         self.file_ending = self.json_input["file_ending"]
 
@@ -125,8 +113,7 @@ class duplicates_json2csv(object):
                         # put the noise variable to -1, if it is not present
                         new_entry = [-1]
                         # add the columns except noise
-                        new_entry.extend([entry[column] for column in set(
-                            self.in_columns) - set(["noise"])])
+                        new_entry.extend([entry[column] for column in self.in_columns if "noise" not in column])
                         data.append(new_entry)
                 except KeyError as e:
                     logging.debug("KeyError: ", e, entry)
@@ -163,13 +150,20 @@ class duplicates_json2csv(object):
             sub_dirs = head[len(self.in_dir_name):]
             dir_name_components = sub_dirs.split("/")
             # first = 82868075, second = 21672228 in home/reinhold/Daten/OPEN/OPENonOH_Data/OpenHumansData/82868075/21672228/entries__to_2020-09-11
-            first, second = dir_name_components[0], dir_name_components[1]
-            filename, _ = os.path.splitext(tail)
-            if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + second + "_" + filename + ".csv")):
-                continue
-            self.one_json2csv(head, tail, first + "_" +
-                              second + "_" + filename + ".csv")
-
+            # home/reinhold/Daten/OPEN_4ds/n=101_OPENonOH_07.07.2022/00749582/direct-sharing-31
+            if 0:  # 2020 data
+                first, second = dir_name_components[0], dir_name_components[1]
+                filename, _ = os.path.splitext(tail)
+                if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + second + "_" + filename + ".csv")):
+                    continue
+                self.one_json2csv(head, tail, first + "_" +
+                                second + "_" + filename + ".csv")
+            else:  # 2022 data: n=101_OPENonOH_07.07.2022 
+                first = dir_name_components[1]
+                filename, _ = os.path.splitext(tail)
+                if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + filename + ".csv")):
+                    continue
+                self.one_json2csv(head, tail, first + "_" + filename + ".csv")
     def extract_json_gz(self, dir_name):
         # for the OpenAPS_NS (nightscout) dataset
         # gunzip json.gz to json files
@@ -188,9 +182,9 @@ class duplicates_json2csv(object):
 
         if len(json_gz ^ json_) > 0:
             logging.debug(
-                f"json files without corresponding json.gz file: ", json_ - json_gz)
+                f"json files without corresponding json.gz file: {json_ - json_gz}")
             logging.debug(
-                f"json.gz files without corresponding json file: ", json_gz - json_)
+                f"json.gz files without corresponding json file: {json_gz - json_}")
 
         for i, f in enumerate(json_gz - json_):
             os.system(f"gunzip {f}")
