@@ -7,12 +7,13 @@
     "core":
     {
         "comment": "[dir_name, file_name, human-readable label, machine-readable label]",
+        "comment0": "dir_name is where the raw data is being stored, file_name specifies a csv file to be created",
         "comment1": "paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'",
         "comment2": "human-readable label is used in plotting, machine-readable label in paths or filenames",
         "comment3": "the link indices (0,1,2, ...) can be used as part of the column_names in the dataframes: pm_id_1 refers to the data of the corresponding list index below.",
         "individual" : [
                 ["OpenAPS_NS_Data/", "OpenAPS_NS_per_day.csv", "OpenAPS (NS)", "OpenAPS_NS"],
-                ["OPENonOH_Data/", "OPENonOH_per_day.csv", "OPENonOH (NS)", "OPENonOH_NS"],
+                ["OPENonOH_NS_Data/", "OPENonOH_NS_per_day.csv", "OPENonOH (NS)", "OPENonOH_NS"],
                 ["OPENonOH_AAPS_Uploader_Data/", "OPENonOH_AAPS_Uploader_per_day.csv", "OPENonOH (AAPS_Uploader)", "OPENonOH_AAPS_Uploader"],
                 ["OpenAPS_AAPS_Uploader_Data/", "OpenAPS_AAPS_Uploader_per_day.csv", "OpenAPS (AAPS_Uploader)", "OpenAPS_AAPS_Uploader"]
         ],
@@ -21,6 +22,15 @@
             "per_pm_id_date" : ["", "data_per_pm_id_date.csv", "per_pm_id_date"],
             "comment" : "[dir_name, file_name, label], paths are os.path.join('root_data_dir_name','dir_name', 'filename'), paths should end on '/'"
         }
+    },
+    "project_member_id_list" : {
+        "comment July 19 2022" : "copied from config_all_3files_whitelist.json. For data and output see OPEN_1sttry.",
+        "comment" : "[dir_name, file_name, list(dataset keys)] is the file- and dir-name of the list of project member_ids, which are used to restrict the project member ids in the data_per_user_id.csv and data_per_user_id_date.csv",
+        "comment2" : "dataset keys are the ones from 'input' -> 'individual'",
+        "list" : ["", "WhiteList.txt", ["2", "3"]],
+        "per_user_id" : ["", "data_per_user_id_whitelist.csv"],
+        "per_user_id_date" : ["", "data_per_user_id_date_whitelist.csv"],
+        "comment3" : "[dir_name, file_name] is the dir- and file-name of the output files per user_id respectively (user_id, date)"
     },
     "steps": {
         "preparation" :
@@ -41,5 +51,9 @@
             "upset_plots",
             "pairwise_plots"
         ]
+    },
+    "logging" : {
+        "comment" : "dir_name is relative to root_data_dir_name as well",
+        "dir_name" : "log/"
     }
 }

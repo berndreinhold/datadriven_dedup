@@ -16,6 +16,9 @@ class duplicates_aggregation(object):
         datasets = [x for x in IO_json["duplicates_aggregation"].keys() if "comment" and "logging" not in x]
         assert(self.dataset in datasets)
 
+        self.root_data_dir_name = IO_json["root_data_dir_name"]
+        self.columns = IO_json["columns"]
+
         self.json_input = IO_json["duplicates_aggregation"][self.dataset]["input"]
         self.json_output = IO_json["duplicates_aggregation"][self.dataset]["output"]
 
@@ -30,8 +33,8 @@ class duplicates_aggregation(object):
 
     def __del__(self):
         df = pd.concat(self.df_list, axis=0)
-        df.to_csv(os.path.join(self.out_dir_name, self.out_file_name))
-        print(os.path.join(self.out_dir_name, self.out_file_name) + " created")
+        df.to_csv(os.path.join(self.root_data_dir_name, self.out_dir_name, self.out_file_name))
+        print(os.path.join(self.root_data_dir_name, self.out_dir_name, self.out_file_name) + " created")
 
 
     def loop(self):
@@ -39,7 +42,7 @@ class duplicates_aggregation(object):
         loop through all csv files that match the file_pattern in the in_dir_name
         fill self.df_list, which is then saved in the destructor
         """
-        for i, f in enumerate(glob.glob(os.path.join(f"{self.in_dir_name}","**", self.file_pattern), recursive=True)):
+        for i, f in enumerate(sorted(glob.glob(os.path.join(self.root_data_dir_name, self.in_dir_name,"**", self.file_pattern), recursive=True))):
             head, tail = os.path.split(f)
             if i%10==0: print(i, tail)
             # df = pd.read_csv(f, header=0, parse_dates=[4], index_col=0)
@@ -47,7 +50,10 @@ class duplicates_aggregation(object):
             if len(df)<1:
                 print(f"no entries: {head}, {tail}") 
                 continue
-            
+            for a,b in zip(self.columns,df.columns):
+                assert a == b
+
+
             df["unix_timestamp"] = df["date"]
             # unix_timestamp in ms is a 13 digit number, in s it is a 10 digit number (in 2022)
             if not ((np.log10(df["unix_timestamp"]) > 12) & (np.log10(df["unix_timestamp"]) < 13)).all(): 
@@ -71,9 +77,16 @@ class duplicates_aggregation(object):
             self.df_list.append(df2)
 
 
+def get_datasets(config_filename : str, config_path : str):
+    f = open(os.path.join(config_path, config_filename))
+    IO_json = json.load(f)
+
+    datasets = [d for d in IO_json["duplicates_aggregation"].keys() if d not in "logging" and "comment" not in d]
+    return datasets
 
 def main(dataset : str = "", config_filename : str = "IO.json", config_path : str = "."):
     if dataset == "":
+        datasets = get_datasets(config_filename, config_path)
         for d in datasets: 
             print(d)
             agg = duplicates_aggregation(config_filename, config_path, d)
@@ -85,5 +98,3 @@ def main(dataset : str = "", config_filename : str = "IO.json", config_path : st
 
 if __name__ == "__main__":
     fire.Fire(main)
-
-

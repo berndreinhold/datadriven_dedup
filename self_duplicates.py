@@ -33,13 +33,16 @@ class self_duplicates(object):
             - duplicates file containing the duplicates between the two data files with key [user_id_ds1, user_id_ds2, date]
         """
         f = open(os.path.join(config_path, config_filename))
-        self.IO_json = json.load(f)["self_duplicates"]
+        IO_json = json.load(f)
+        self.root_data_dir_name = IO_json["root_data_dir_name"]
+        self.IO_json = IO_json["self_duplicates"]
+        
         self.datasets = [x for x in self.IO_json.keys() if "comment" and "logging" not in x]
         self.sgv_columns = ["sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count"]  # sgv: single (?) glucose value (see json files)
 
         self.df = {}
         for ds in self.datasets:
-            self.df[ds] = pd.read_csv(os.path.join(self.IO_json[ds]["dir_name"], self.IO_json[ds]["in_file_name"]), header=0, parse_dates=[1], index_col=0)
+            self.df[ds] = pd.read_csv(os.path.join(self.root_data_dir_name, self.IO_json[ds]["dir_name"], self.IO_json[ds]["in_file_name"]), header=0, parse_dates=[1], index_col=0)
             self.df[ds]["date"] = pd.to_datetime(self.df[ds]["date"],format="%Y-%m-%d")
             # fix the data types that were loaded as the unspecific "object"
             for col in self.df[ds].columns:
@@ -65,7 +68,8 @@ class self_duplicates(object):
     def clean_self_duplicates(self, df_groupby : pd.DataFrame, dataset : str):
         df_merged = pd.merge(self.df[dataset], df_groupby, how='inner', left_on=["date", "user_id", "filename"], right_on=["date", "user_id", "one_filename"])
         df_merged = df_merged[self.df[dataset].columns]
-        df_merged.to_csv(os.path.join(self.IO_json[dataset]["dir_name"], self.IO_json[dataset]["out_file_name"]))
+        df_merged.to_csv(os.path.join(self.root_data_dir_name, self.IO_json[dataset]["dir_name"], self.IO_json[dataset]["out_file_name"]))
+        print(os.path.join(self.root_data_dir_name, self.IO_json[dataset]["dir_name"], self.IO_json[dataset]["out_file_name"]), " created")
 
     def loop(self):
         for dataset in self.datasets:
@@ -79,4 +83,4 @@ def main(config_filename : str = "IO.json", config_path : str = "."):
     
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

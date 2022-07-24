@@ -30,6 +30,11 @@ running the simulation has several advantages over running it on real data:
 - real data requires preprocessing and format adaptions on a case-by-case basis.
 - it allows anybody to familiarize her/himself with the code, below tips and hints on adjusting it to ones personal dataset are provided.
 
+## individual datasets
+there is a section in the config files on processing that happens on the individual and pairwise_processing.
+These need to be added to the generate_config_json.py.
+These are also only relevant for the real data section, not for the artificial data section.
+
 ## naming
 a person that donated days of its data can have done so to more than one dataset and uploader
 dataset represents here a dataset-uploader pair.
