@@ -44,17 +44,23 @@ class generate_config_json():
         os.makedirs(os.path.join(out_dir), exist_ok=True)
         output_json = { "root_data_dir_name": self.root_data_dir_name}
         output_json["duplicates_pairwise"] = deepcopy(self.output["duplicates_pairwise"])
+        output_json["logging"] = deepcopy(self.logging)
         self.save_config_json(output_json, "config_pairwise.json")
         output_json = { "root_data_dir_name": self.root_data_dir_name}
         output_json["link_all_datasets"] = deepcopy(self.output["link_all_datasets"])
+        output_json["logging"] = deepcopy(self.logging)
         self.save_config_json(output_json, "config_all.json")
         output_json = { "root_data_dir_name": self.root_data_dir_name}
         output_json["summary_plots"] = deepcopy(self.output["summary_plots"])
         output_json["pairwise_plots"] = deepcopy(self.output["pairwise_plots"])
+        output_json["logging"] = deepcopy(self.logging)
         self.save_config_json(output_json, "config_viz.json")
         output_json = { "root_data_dir_name": self.root_data_dir_name}
+        output_json["columns"] = ["noise", "sgv", "date", "dateString"]
         output_json["duplicates_json2csv"] = deepcopy(self.output["duplicates_json2csv"])
         output_json["duplicates_aggregation"] = deepcopy(self.output["duplicates_aggregation"])
+        output_json["self_duplicates"] = deepcopy(self.output["self_duplicates"])
+        output_json["logging"] = deepcopy(self.logging)
         self.save_config_json(output_json, "config_preprocessing.json")
 
 
@@ -77,6 +83,8 @@ class generate_config_json():
         self.output["duplicates_aggregation"] = dict()
         self.output["duplicates_aggregation"] = self.dict_individual_aggregation()
         self.output["duplicates_aggregation"]["logging"] = self.logging
+        self.output["self_duplicates"] = dict()
+        self.output["self_duplicates"] = self.dict_self_duplicates()
 
 
     def dict_individual_json2csv(self) -> dict:
@@ -86,7 +94,6 @@ class generate_config_json():
         individual_ds = dict()
         for i,ds in enumerate(self.core["individual"]):
                 individual_ds[ds[3]] = dict()
-                individual_ds[ds[3]]["columns"] = ["noise", "sgv", "date", "dateString"]
                 individual_ds[ds[3]]["input"] = dict()
                 individual_ds[ds[3]]["input"]["file_ending"] = "json"
                 individual_ds[ds[3]]["input"]["dir_name"] = "n=101_OPENonOH_07.07.2022"
@@ -104,12 +111,26 @@ class generate_config_json():
                 individual_ds[ds[3]] = dict()
                 individual_ds[ds[3]]["input"] = dict()
                 individual_ds[ds[3]]["input"]["file_pattern"] = "*entries*.csv"
-                individual_ds[ds[3]]["input"]["dir_name"] = os.path.join(ds[0], "per_measurement_csv")
+                individual_ds[ds[3]]["input"]["dir_name"] = os.path.join(ds[0].strip(), "per_measurement_csv")
                 individual_ds[ds[3]]["output"] = dict()
                 individual_ds[ds[3]]["output"]["dir_name"] = ds[0]
-                individual_ds[ds[3]]["output"]["file_name"] = f"{ds[0]}_per_day_with-self-duplicates.csv"
+                individual_ds[ds[3]]["output"]["file_name"] = f"{ds[3].strip()}_per_day_with-self-duplicates.csv"
         return individual_ds
 
+    def dict_self_duplicates(self) -> dict:
+        """
+        return a dict of the self duplicates of the individual datasets
+        """
+        individual_ds = dict()
+        for i,ds in enumerate(self.core["individual"]):
+                individual_ds[ds[3]] = dict()
+                individual_ds[ds[3]]["input"] = dict()
+                individual_ds[ds[3]]["dir_name"] = os.path.join(ds[0].strip())
+                individual_ds[ds[3]]["in_file_name"] = f"{ds[3]}_per_day_with-self-duplicates.csv"
+                individual_ds[ds[3]]["out_file_name"] = f"{ds[3]}_per_day.csv"
+                assert individual_ds[ds[3]]["out_file_name"] == ds[1]
+
+        return individual_ds
 
     def config_pairwise_json(self):
 
