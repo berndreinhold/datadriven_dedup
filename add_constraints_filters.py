@@ -36,32 +36,49 @@ class add_constraints_filters():
         self.IO_json = IO_json
 
     def one_merge(self, df1, df2, pm_id_new, pm_id_col1, pm_id_col2):
-        df1["pm_id_new_a"] = df1["pm_id_1"]  # now drop pm_id_2
-        df2["pm_id_new_a"] = df2["pm_id_2"]  # now drop pm_id_1
-        df1.drop(columns=["pm_id_2"], inplace=True)
-        df2.drop(columns=["pm_id_1"], inplace=True)
+        df1[pm_id_new] = df1[pm_id_col1]  # now drop pm_id_2
+        df2[pm_id_new] = df2[pm_id_col2]  # now drop pm_id_1
+        df1.drop(columns=[pm_id_col2], inplace=True)
+        df2.drop(columns=[pm_id_col1], inplace=True)
         #df1["pm_id_new_b"] = df1["pm_id_0"]
         #df2["pm_id_new_b"] = df2["pm_id_3"]
 
         # only relevant are rows where pm_id_new_a or pm_id_new_b are not NaN
-        df1 = df1[pd.notnull(df1["pm_id_new_a"])]
-        df2 = df2[pd.notnull(df2["pm_id_new_a"])]
+        df1 = df1[pd.notnull(df1[pm_id_new])]
+        df2 = df2[pd.notnull(df2[pm_id_new])]
 
         # remove unnecessary columns for merge, keep only the project_member_id variables, 
         # the others are recalculated in the next step 
         df1 = df1[[c for c in df1.columns if "pm_id" in c]]
         df2 = df2[[c for c in df2.columns if "pm_id" in c]]
-        
-        # apply outer join
-        df_res = pd.merge(df1, df2, how="outer", on="pm_id_new_a")
 
-        # combine the other columns (ending on _x and _y)
+        # replace nan with -1, necessary since NaN == NaN returns False in the selection below
+        df1 = df1.apply(lambda x: x.fillna(-1), axis=0)
+        df2 = df2.apply(lambda x: x.fillna(-1), axis=0)
+
+        # apply outer join
+        df_res = pd.merge(df1, df2, how="outer", on=pm_id_new)
+        df_res.fillna(-1, inplace=True)
+
+        # combine the other columns (ending on _x and _y) into one column: pm_id_2_x and pm_id_2_y into pm_id_2, etc.
+        cols_x = [c for c in df_res.columns if "_x" in c]
+        cols_y = [c for c in df_res.columns if "_y" in c]
         # in principle new different pm_id-pairs refering to the same person could arise from the upper constraints
+        # these are caught here via an assert and dealt with, should they arise.
+        for c_x, c_y in zip(cols_x, cols_y):
+            df_res.loc[(df_res[c_x]==df_res[c_y]),c_x[:-2]] = df_res.loc[(df_res[c_x]==df_res[c_y]),c_x]
+            df_res.loc[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] < 0) & (df_res[c_y] > 0),c_x[:-2]] = \
+                df_res[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] < 0) & (df_res[c_y] > 0)][c_y]
+            df_res.loc[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] > 0) & (df_res[c_y] < 0),c_x[:-2]] = \
+                df_res[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] > 0) & (df_res[c_y] < 0)][c_x]
+            assert len(df_res[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] > 0) & (df_res[c_y] > 0)]) == 0
 
         # drop pm_id_new-column 
-
+        cols_x.extend(cols_y)
+        cols_x.extend([pm_id_new])
+        df_res.drop(columns=cols_x, inplace=True)
+        
         # now df_res also only has the original pm_id_0 to pm_id_3 columns
-
         return df_res
 
 
@@ -77,9 +94,12 @@ class add_constraints_filters():
         # df1.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
 
         df_res = self.one_merge(df1, df2, "pm_id_new_a", "pm_id_1", "pm_id_2")
-        df_res2 = deepcopy(df_res)
-        df_res = self.one_merge(df_res, df_res2, "pm_id_new_b", "pm_id_0", "pm_id_3")
+        df_res.replace(to_replace=-1, value=nan, inplace=True)
+        #df_res2 = deepcopy(df_res)
+        #
+        # df_res = self.one_merge(df_res, df_res2, "pm_id_new_b", "pm_id_0", "pm_id_3")
 
+        #df_res.replace(to_replace=-1, value=nan, inplace=True)
         # calculate and add columns person_id, belongs_to_datasets, count_belongs_to_datasets
 
         # save data_per_pm_id.csv
