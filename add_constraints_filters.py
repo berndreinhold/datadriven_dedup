@@ -5,7 +5,7 @@ import json
 import fire
 from copy import deepcopy
 from numpy import nan
-
+import logging
 
 """
 call as: python3 add_constraints_filters.py [--config_filename=IO.json] [--config_path="."]
@@ -36,54 +36,62 @@ class add_constraints_filters():
         self.count_datasets = len(self.core["individual"])
         self.IO_json = IO_json
 
-        self.con = sqlite3.connect(":memory:")
-        self.con.row_factory = sqlite3.Row  # getting column values by name: https://docs.python.org/3/library/sqlite3.html#sqlite3.Row
-        self.cur = self.con.cursor()
-        self.cur.execute("CREATE TABLE data_per_pm_id (pm_id_0 INTEGER, pm_id_1 INTEGER, pm_id_2 INTEGER, pm_id_3 INTEGER, person_id INTEGER, belongs_to_datasets INTEGER, count_belongs_to_datasets INTEGER)")
 
-    def one_merge(self, df1, df2, pm_id_new, pm_id_col1, pm_id_col2):
-        df1[pm_id_new] = df1[pm_id_col1]  # now drop pm_id_2
-        df2[pm_id_new] = df2[pm_id_col2]  # now drop pm_id_1
-        df1.drop(columns=[pm_id_col2], inplace=True)
-        df2.drop(columns=[pm_id_col1], inplace=True)
-        #df1["pm_id_new_b"] = df1["pm_id_0"]
-        #df2["pm_id_new_b"] = df2["pm_id_3"]
+    def one_merge(self, df1 : pd.DataFrame, df2 : pd.DataFrame, pm_id_df1, pm_id_df2, suffix_ : str = ""):
+        """
+        this requires df1 and df2 to contain NaN for missing values, otherwise the pd.notnull fails.
+        However below after the outer join the NaN values are replaced by -1, since NaN == NaN is false, which is undesirable, while -1 == -1 is true, which we want for combining columns.
+        
+        if suffix_ is not empty, then save dataframe to csv.
+        """
 
-        # only relevant are rows where pm_id_new_a or pm_id_new_b are not NaN
-        df1 = df1[pd.notnull(df1[pm_id_new])]
-        df2 = df2[pd.notnull(df2[pm_id_new])]
+        # only relevant are rows where pm_id_col1 or pm_id_col2 are not NaN
+        df1 = df1[pd.notnull(df1[pm_id_df1])]
+        df2 = df2[pd.notnull(df2[pm_id_df2])]
 
         # remove unnecessary columns for merge, keep only the project_member_id variables, 
-        # the others are recalculated in the next step 
+        # the others are recalculated below
         df1 = df1[[c for c in df1.columns if "pm_id" in c]]
         df2 = df2[[c for c in df2.columns if "pm_id" in c]]
 
-        # replace nan with -1, necessary since NaN == NaN returns False in the selection below
-        df1 = df1.apply(lambda x: x.fillna(-1), axis=0)
-        df2 = df2.apply(lambda x: x.fillna(-1), axis=0)
-
         # apply outer join
-        df_res = pd.merge(df1, df2, how="outer", on=pm_id_new)
+        df_res = pd.merge(df1, df2, how="outer", left_on=pm_id_df1, right_on=pm_id_df2, suffixes=("_df1", "_df2"))
+        
+        # replace nan with -1, necessary since NaN == NaN returns False in the selection below
         df_res.fillna(-1, inplace=True)
 
-        # combine the other columns (ending on _x and _y) into one column: pm_id_2_x and pm_id_2_y into pm_id_2, etc.
-        cols_x = [c for c in df_res.columns if "_x" in c]
-        cols_y = [c for c in df_res.columns if "_y" in c]
+        # combine the columns that were not joined into one column: pm_id_2_df1 and pm_id_2_df2 into pm_id_2, etc.
+        # ending on _df1 and _df2 is introduced by pandas in a merge operation for columns of the same name
+        cols_1 = [c for c in df_res.columns if "_df1" in c and not c == pm_id_df1]
+        cols_2 = [c for c in df_res.columns if "_df2" in c and not c == pm_id_df2]
         # in principle new different pm_id-pairs refering to the same person could arise from the upper constraints
         # these are caught here via an assert and dealt with, should they arise.
-        for c_x, c_y in zip(cols_x, cols_y):
-            df_res.loc[(df_res[c_x]==df_res[c_y]),c_x[:-2]] = df_res.loc[(df_res[c_x]==df_res[c_y]),c_x]
-            df_res.loc[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] < 0) & (df_res[c_y] > 0),c_x[:-2]] = \
-                df_res[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] < 0) & (df_res[c_y] > 0)][c_y]
-            df_res.loc[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] > 0) & (df_res[c_y] < 0),c_x[:-2]] = \
-                df_res[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] > 0) & (df_res[c_y] < 0)][c_x]
-            assert len(df_res[(df_res[c_x]!=df_res[c_y]) & (df_res[c_x] > 0) & (df_res[c_y] > 0)]) == 0
+        for c_1, c_2 in zip(cols_1, cols_2):
+            # c_1[:-2] == c_2[:-2]  # just the suffixes _1 and _2 are removed
+            df_res.loc[(df_res[c_1]==df_res[c_2]),c_1[:-4]] = df_res.loc[(df_res[c_1]==df_res[c_2]),c_1]
+            df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] < 0) & (df_res[c_2] > 0),c_1[:-4]] = \
+                df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] < 0) & (df_res[c_2] > 0)][c_2]
+            df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] < 0),c_1[:-4]] = \
+                df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] < 0)][c_1]
+            if (df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0).any():
+                df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0),[c_1[:-4]]] = \
+                    df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0)][[c_1, c_2]]
+                logging.warning(f"a new pm_id-pair has been found and stored in a list of columns {c_1} and {c_2}. Please inspect the csv output file.")
 
-        # drop pm_id_new-column 
-        cols_x.extend(cols_y)
-        cols_x.extend([pm_id_new])
-        df_res.drop(columns=cols_x, inplace=True)
-        
+        df_res.replace(to_replace=-1, value=nan, inplace=True)
+
+        cols_1.extend(cols_2)
+        df_res.drop(columns=cols_1, inplace=True)
+        df_res = df_res[sorted(df_res.columns)]
+
+        if len(suffix_) > 0:
+            new_outfile_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
+            new_outfile_name = new_outfile_name + "_" + suffix_ + ext
+
+            df_res.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+            print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+
+
         # now df_res also only has the original pm_id_0 to pm_id_3 columns
         return df_res
 
@@ -99,21 +107,29 @@ class add_constraints_filters():
         # save old data_per_pm_id.csv as data_per_pm_id_before_constraints_filters.csv
         # df1.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
 
-        df_res = self.one_merge(df1, df2, "pm_id_new_a", "pm_id_1", "pm_id_2")
-        df_res.replace(to_replace=-1, value=nan, inplace=True)
+        df_res = self.one_merge(df1, df2, "pm_id_1", "pm_id_2")
+        df_res2 = self.one_merge(df1, df2, "pm_id_0", "pm_id_3")
+        df_all = pd.merge(df_res, df_res2, how="outer", on=["pm_id_1", "pm_id_2", "pm_id_0", "pm_id_3"], suffixes=("_df1", "_df2"))
+
+        # sort columns
+        df_all = df_all[sorted(df_all.columns)]
+
+        new_outfile_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
+        new_outfile_name = new_outfile_name + "_total" + ext
+
+        df_all.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+        print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+
+
         #df_res2 = deepcopy(df_res)
         #
-        # df_res = self.one_merge(df_res, df_res2, "pm_id_new_b", "pm_id_0", "pm_id_3")
 
         #df_res.replace(to_replace=-1, value=nan, inplace=True)
         # calculate and add columns person_id, belongs_to_datasets, count_belongs_to_datasets
 
         # save data_per_pm_id.csv
-        new_outfile_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
-        new_outfile_name = new_outfile_name + "_testy" + ext
 
-        df_res.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
-        print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+        
 
 
 def main(config_filename : str = "config_master_4ds.json", config_path : str = ""):
