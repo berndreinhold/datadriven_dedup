@@ -6,6 +6,7 @@ import fire
 from copy import deepcopy
 from numpy import nan
 import logging
+from link_all_datasets import entry_datasets_association
 
 """
 call as: python3 add_constraints_filters.py [--config_filename=IO.json] [--config_path="."]
@@ -17,7 +18,7 @@ the concrete constraints are:
 share the same project_member_id, however so far only the info from the BG data is exploited.
 - same for pm_id_0 (OpenAPS Nightscout Uploader) and pm_id_3 (OpenAPS AAPS Uploader)
 
-recalculate person_id afterwards, belongs_to_datasets, count_belongs_to_datasets.
+recalculate person_id, belongs_to_datasets, count_belongs_to_datasets afterwards.
 
 Perform a outer join of data_per_pm_id.csv with itself based on pm_id_0 == pm_id_3 and pm_id_1 == pm_id_2. 
 """
@@ -73,9 +74,11 @@ class add_constraints_filters():
                 df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] < 0) & (df_res[c_2] > 0)][c_2]
             df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] < 0),c_1[:-4]] = \
                 df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] < 0)][c_1]
-            if (df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0).any():
+            if ((df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0)).any():
                 df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0),[c_1[:-4]]] = \
                     df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0)][[c_1, c_2]]
+                df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] > 0) & (df_res[c_2] > 0),["comment"]] = \
+                    f"a new pm_id-pair has been found and stored in a list of columns {c_1} and {c_2}."
                 logging.warning(f"a new pm_id-pair has been found and stored in a list of columns {c_1} and {c_2}. Please inspect the csv output file.")
 
         df_res.replace(to_replace=-1, value=nan, inplace=True)
@@ -104,8 +107,11 @@ class add_constraints_filters():
         df1 = pd.read_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
         df2 = pd.read_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
         
-        # save old data_per_pm_id.csv as data_per_pm_id_before_constraints_filters.csv
-        # df1.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+        # save old data_per_pm_id.csv as 
+        orig_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
+        new_outfile_name = f"{orig_name}_before_constraints_filters{ext}"
+        df1.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+        print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
 
         df_res = self.one_merge(df1, df2, "pm_id_1", "pm_id_2")
         df_res2 = self.one_merge(df1, df2, "pm_id_0", "pm_id_3")
@@ -113,21 +119,18 @@ class add_constraints_filters():
 
         # sort columns
         df_all = df_all[sorted(df_all.columns)]
+        assert df_all.drop_duplicates().shape[0] == df_all.shape[0], \
+            f"there are duplicate rows in the dataframe: {df_all.drop_duplicates().shape}, {df_all.shape}"
+
+        # calculate and add columns person_id, belongs_to_datasets, count_belongs_to_datasets
+        df_all["person_id"] = range(df_all.shape[0])  # here the person_id variable is created. Important!
+        entry_datasets_association(df_all)
 
         new_outfile_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
         new_outfile_name = new_outfile_name + "_total" + ext
 
-        df_all.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
-        print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
-
-
-        #df_res2 = deepcopy(df_res)
-        #
-
-        #df_res.replace(to_replace=-1, value=nan, inplace=True)
-        # calculate and add columns person_id, belongs_to_datasets, count_belongs_to_datasets
-
-        # save data_per_pm_id.csv
+        df_all.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
+        print("saved new file as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
 
         
 
