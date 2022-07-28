@@ -5,7 +5,7 @@ import json
 import fire
 from copy import deepcopy
 from numpy import nan
-import sqlite3
+
 
 """
 call as: python3 add_constraints_filters.py [--config_filename=IO.json] [--config_path="."]
@@ -87,27 +87,6 @@ class add_constraints_filters():
         # now df_res also only has the original pm_id_0 to pm_id_3 columns
         return df_res
 
-    def fill_sql_table(self):
-        df1 = pd.read_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]), header=0)
-        data_ = []
-        for row in df1.itertuples():
-            data_.append([row.pm_id_0, row.pm_id_1, row.pm_id_2, row.pm_id_3, row.person_id, row.belongs_to_datasets, row.count_belongs_to_datasets])
-        
-        self.cur.executemany("Insert into data_per_pm_id values (?,?,?,?,?,?,?)", data_)
-        print(self.cur.rowcount, "rows inserted")
-        cur = self.con.execute("SELECT * from data_per_pm_id")
-
-        # print column names
-        for i in range(len(cur.description)):
-            print(cur.description[i][0])
-        #for row in cur.fetchall():
-        #    print(row["pm_id_0"], row["pm_id_1"], row["pm_id_2"], row["pm_id_3"], row["person_id"], row["belongs_to_datasets"], row["count_belongs_to_datasets"])        
-
-    def self_join_common_pm_ids(self):
-        cur = self.con.execute("SELECT A.pm_id_0, A.pm_id_1, A.pm_id_2, A.pm_id_3, B.pm_id_0, B.pm_id_1, B.pm_id_2, B.pm_id_3 from data_per_pm_id as A left join data_per_pm_id as B on A.pm_id_1 = B.pm_id_2 and A.pm_id_0 = B.pm_id_3 UNION " \
-            "SELECT A.pm_id_0, A.pm_id_1, A.pm_id_2, A.pm_id_3, B.pm_id_0, B.pm_id_1, B.pm_id_2, B.pm_id_3 from data_per_pm_id as B left join data_per_pm_id as A on A.pm_id_1 = B.pm_id_2 and A.pm_id_0 = B.pm_id_3 ")
-        #for row in cur.fetchall():
-        #    print(row["pm_id_1"], row["pm_id_2"], row["pm_id_3"], row["pm_id_4"], row["pm_id_1"], row["pm_id_2"], row["pm_id_3"], row["pm_id_4"])
 
     def join_them(self):
         """
@@ -139,9 +118,7 @@ class add_constraints_filters():
 
 def main(config_filename : str = "config_master_4ds.json", config_path : str = ""):
     acf = add_constraints_filters(config_filename, config_path)
-    acf.fill_sql_table()
-    acf.self_join_common_pm_ids()
-    #acf.join_them()
+    acf.join_them()
 
 
 if __name__ == "__main__":
