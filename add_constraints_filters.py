@@ -6,7 +6,7 @@ import fire
 from copy import deepcopy
 from numpy import nan
 import logging
-from link_all_datasets import entry_datasets_association
+from link_all_datasets import entry_datasets_association, link_all_datasets_pm_id_date
 
 """
 call as: python3 add_constraints_filters.py [--config_filename=IO.json] [--config_path="."]
@@ -23,18 +23,16 @@ recalculate person_id, belongs_to_datasets, count_belongs_to_datasets afterwards
 Perform a outer join of data_per_pm_id.csv with itself based on pm_id_0 == pm_id_3 and pm_id_1 == pm_id_2. 
 """
 
-class add_constraints_filters():
+class add_constraints_filters_per_pm_id():
     def __init__(self, config_filename : str, config_path : str):
         f = open(os.path.join(config_path, config_filename))
         # reading the IO_json config file
         IO_json = json.load(f)
         self.root_data_dir_name = IO_json["root_data_dir_name"]
-        self.core = IO_json["core"]
-        self.steps = IO_json["steps"]
-        self.logging = IO_json["logging"]
+        self.output = IO_json["link_all_datasets"]["output"]
 
         # self.output = IO_json["output"]
-        self.count_datasets = len(self.core["individual"])
+        self.count_datasets = len(IO_json["link_all_datasets"]["individual"])
         self.IO_json = IO_json
 
 
@@ -88,31 +86,25 @@ class add_constraints_filters():
         df_res = df_res[sorted(df_res.columns)]
 
         if len(suffix_) > 0:
-            new_outfile_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
+            new_outfile_name, ext = os.path.splitext(self.output["per_pm_id"][1])
             new_outfile_name = new_outfile_name + "_" + suffix_ + ext
 
-            df_res.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
-            print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
+            df_res.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
+            print("saved as: ", os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
 
 
         # now df_res also only has the original pm_id_0 to pm_id_3 columns
         return df_res
 
 
-    def join_them(self):
+    def create_new_csv_from_self_join(self):
         """
         self outer join the data_per_pm_id.csv
         """
         # load data_per_pm_id.csv
-        df1 = pd.read_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
-        df2 = pd.read_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
+        df1 = pd.read_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
+        df2 = pd.read_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
         
-        # save old data_per_pm_id.csv as 
-        orig_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
-        new_outfile_name = f"{orig_name}_before_constraints_filters{ext}"
-        df1.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
-        print("saved as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], new_outfile_name))
-
         df_res = self.one_merge(df1, df2, "pm_id_1", "pm_id_2")
         df_res2 = self.one_merge(df1, df2, "pm_id_0", "pm_id_3")
         df_all = pd.merge(df_res, df_res2, how="outer", on=["pm_id_1", "pm_id_2", "pm_id_0", "pm_id_3"], suffixes=("_df1", "_df2"))
@@ -126,19 +118,22 @@ class add_constraints_filters():
         df_all["person_id"] = range(df_all.shape[0])  # here the person_id variable is created. Important!
         entry_datasets_association(df_all)
 
-        new_outfile_name, ext = os.path.splitext(self.core["output"]["per_pm_id"][1])
-        new_outfile_name = new_outfile_name + "_total" + ext
-
-        df_all.to_csv(os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
-        print("saved new file as: ", os.path.join(self.root_data_dir_name, self.core["output"]["per_pm_id"][0], self.core["output"]["per_pm_id"][1]))
-
+        orig_name, ext = os.path.splitext(self.output["per_pm_id"][1])
+        new_outfile_name = f"{orig_name}_after_constraints_filters{ext}"
         
+        df_all.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
+        print("saved new file as: ", os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
+
+        return df_all
 
 
-def main(config_filename : str = "config_master_4ds.json", config_path : str = ""):
-    acf = add_constraints_filters(config_filename, config_path)
-    acf.join_them()
-
+def main(config_filename : str = "config_all.json", config_path : str = ""):
+    acf = add_constraints_filters_per_pm_id(config_filename, config_path)
+    df_pm_id_only = acf.create_new_csv_from_self_join()  # provides self.out_df_pm_id_only
+    
+    lads = link_all_datasets_pm_id_date(config_filename, config_path)
+    lads.set_pm_id_only_table(df_pm_id_only)
+    lads.generate_pm_id_date_table(save = False)  #uses self.out_df_pm_id_only to create pm_id_date_table.csv
 
 if __name__ == "__main__":
     fire.Fire(main)
