@@ -15,7 +15,7 @@ read the data_per_pm_id.csv and modify it with additional constraints and filter
 
 the concrete constraints are:
 - pm_id_1 (OPENonOH Nightscout Uploader) and pm_id_2 (OPENonOH AAPS Uploader) 
-share the same project_member_id, however so far only the info from the BG data is exploited.
+share the same project_member_id, however so far only the info from the BG data is used to identify duplicates.
 - same for pm_id_0 (OpenAPS Nightscout Uploader) and pm_id_3 (OpenAPS AAPS Uploader)
 
 recalculate person_id, belongs_to_datasets, count_belongs_to_datasets afterwards.
@@ -36,8 +36,11 @@ class add_constraints_filters_per_pm_id():
         self.IO_json = IO_json
 
 
-    def one_merge(self, df1 : pd.DataFrame, df2 : pd.DataFrame, pm_id_df1, pm_id_df2, suffix_ : str = ""):
+    def merge_per_project(self, df1 : pd.DataFrame, df2 : pd.DataFrame, pm_id_df1, pm_id_df2, suffix_ : str = ""):
         """
+        the merge of dataframes belonging to one project (OPENonOH or OpenAPS).
+        This function is called twice in create_new_csv_from_self_join() for the two projects.
+
         this requires df1 and df2 to contain NaN for missing values, otherwise the pd.notnull fails.
         However below after the outer join the NaN values are replaced by -1, since NaN == NaN is false, which is undesirable, while -1 == -1 is true, which we want for combining columns.
         
@@ -64,9 +67,9 @@ class add_constraints_filters_per_pm_id():
         cols_1 = [c for c in df_res.columns if "_df1" in c and not c == pm_id_df1]
         cols_2 = [c for c in df_res.columns if "_df2" in c and not c == pm_id_df2]
         # in principle new different pm_id-pairs refering to the same person could arise from the upper constraints
-        # these are caught here via an assert and dealt with, should they arise.
+        # these are caught here via an assert and dealt with offline, should they arise.
         for c_1, c_2 in zip(cols_1, cols_2):
-            # c_1[:-2] == c_2[:-2]  # just the suffixes _1 and _2 are removed
+            # c_1[:-4] == c_2[:-4]  # just the suffixes _df1 and _df2 are removed
             df_res.loc[(df_res[c_1]==df_res[c_2]),c_1[:-4]] = df_res.loc[(df_res[c_1]==df_res[c_2]),c_1]
             df_res.loc[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] < 0) & (df_res[c_2] > 0),c_1[:-4]] = \
                 df_res[(df_res[c_1]!=df_res[c_2]) & (df_res[c_1] < 0) & (df_res[c_2] > 0)][c_2]
@@ -97,7 +100,7 @@ class add_constraints_filters_per_pm_id():
         return df_res
 
 
-    def create_new_csv_from_self_join(self):
+    def create_new_csv_from_self_join(self, save : bool = False):
         """
         self outer join the data_per_pm_id.csv
         """
@@ -105,9 +108,10 @@ class add_constraints_filters_per_pm_id():
         df1 = pd.read_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
         df2 = pd.read_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
         
-        df_res = self.one_merge(df1, df2, "pm_id_1", "pm_id_2")
-        df_res2 = self.one_merge(df1, df2, "pm_id_0", "pm_id_3")
-        df_all = pd.merge(df_res, df_res2, how="outer", on=["pm_id_1", "pm_id_2", "pm_id_0", "pm_id_3"], suffixes=("_df1", "_df2"))
+        df_res1 = self.merge_per_project(df1, df2, "pm_id_1", "pm_id_2")
+        df_res2 = self.merge_per_project(df1, df2, "pm_id_0", "pm_id_3")
+        df_all = pd.merge(df_res1, df_res2, how="outer", on=["pm_id_1", "pm_id_2", "pm_id_0", "pm_id_3"], suffixes=("_df_res1", "_df_res2"))
+
 
         # sort columns
         df_all = df_all[sorted(df_all.columns)]
@@ -118,22 +122,115 @@ class add_constraints_filters_per_pm_id():
         df_all["person_id"] = range(df_all.shape[0])  # here the person_id variable is created. Important!
         entry_datasets_association(df_all)
 
-        orig_name, ext = os.path.splitext(self.output["per_pm_id"][1])
-        new_outfile_name = f"{orig_name}_after_constraints_filters{ext}"
-        
-        df_all.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
-        print("saved new file as: ", os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
+        if save: 
+            orig_name, ext = os.path.splitext(self.output["per_pm_id"][1])
+            new_outfile_name = f"{orig_name}_after_constraints_filters{ext}"
+
+            df_all.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
+            print("saved new file as: ", os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], new_outfile_name))
 
         return df_all
 
 
+    def fill_project_info(self, df : pd.DataFrame):
+        """
+        does not use self, except for the path names
+
+        read 'belongs_to_datasets' variable and fill new project_info columns
+
+        convention used here: functions, which are called only by a lambda function are inside this function.
+        """
+        def project_id(row : list, IDs_to_find : set, join_by=","):
+            """
+            just used for the lambda-function in df.apply below
+            based on the belongs_to_datasets column determine to which project the row belongs to
+            """
+            assert type(IDs_to_find) == set, f"IDs_to_find must be a set, but is {type(IDs_to_find)}"
+            dataset_id_str = str(row["belongs_to_datasets"])
+            if ',' in dataset_id_str:
+                dataset_ids = dataset_id_str.split(",")
+                dataset_ids = [int(x) for x in dataset_ids]
+                intersect_ = IDs_to_find & set(dataset_ids)
+                if len(intersect_) > 0:
+                    return row[f"pm_id_{intersect_.pop()}"]
+                else: return nan
+            else:
+                if int(dataset_id_str) in IDs_to_find:
+                    return row[f"pm_id_{dataset_id_str}"]
+                else: return nan
+
+        var = "per_pm_id"
+
+        df["project_OPENonOH"] = df.apply(lambda row: project_id(row, {1,2}), axis=1)
+        df["project_OpenAPS"] = df.apply(lambda row: project_id(row, {0,3}), axis=1)
+        self.entry_projects_association(df)
+
+        df.sort_values(by=["count_belongs_to_projects"], inplace=True)
+        df.drop_duplicates([col for col in df.columns if col.startswith("project")], keep="last", inplace=True)  # drop duplicates on pm_id_0 and pm_id_1 is sufficient, since pm_id_0 has been merged with pm_id_3 and pm_id_1 with pm_id_2
+        
+        fn, ext = os.path.splitext(self.output[var][1])
+        new_outfile_name = f"{fn}_with_project_info{ext}"
+        df.to_csv(os.path.join(self.root_data_dir_name, self.output[var][0], new_outfile_name))
+        print("saved as: ", os.path.join(self.root_data_dir_name, self.output[var][0], new_outfile_name), ", shape: ", df.shape)
+
+    def entry_projects_association(self,df):
+        """
+        Add two columns to df which describe to which projects a row belongs and to how many different datasets.
+        and save it to a csv file
+
+        self is not used, it is just member function of this class, since it is closely related to fill_project_info()
+        see also link_all_datasets.entry_datasets_association()
+        """
+        def belongs_to_project(row : list, column_list : list, join_by=","):
+            """
+            just used for the lambda-function below
+            """
+            project_names, project_counter = [], []
+            for i,col in enumerate([col for col in column_list if col.startswith("project")]):
+                if row[col] is not nan and row[col] > 0:
+                    col_id = col.split("_")[-1]  # col: project_OPENonOH, projet_OpenAPS
+                    project_names.append(col_id)
+                    project_counter.append(f"{i}")
+            return join_by.join(project_names), join_by.join(project_counter)
+
+        join_by = ","
+        df["belongs_to_project_names"] = df.apply(lambda row: belongs_to_project(row, df.columns)[0], axis=1)
+        df["belongs_to_projects"] = df.apply(lambda row: belongs_to_project(row, df.columns)[1], axis=1)
+        df["count_belongs_to_projects"] = df.apply(lambda x: len(x["belongs_to_projects"].split(join_by)), axis=1)
+
+
+
+class project_ID_column():
+    """
+    regardless of the uploader type assign them to the OPENonOH (project B) or OpenAPS (project A) project
+    """
+    def __init__(self, config_filename : str, config_path : str):
+        f = open(os.path.join(config_path, config_filename))
+        # reading the IO_json config file
+        IO_json = json.load(f)
+        self.root_data_dir_name = IO_json["root_data_dir_name"]
+        self.output = IO_json["link_all_datasets"]["output"]
+
+        # self.output = IO_json["output"]
+        self.count_datasets = len(IO_json["link_all_datasets"]["individual"])
+        self.IO_json = IO_json
+
+    # read both files
+
+
+
+
 def main(config_filename : str = "config_all.json", config_path : str = ""):
     acf = add_constraints_filters_per_pm_id(config_filename, config_path)
-    df_pm_id_only = acf.create_new_csv_from_self_join()  # provides self.out_df_pm_id_only
-    
-    lads = link_all_datasets_pm_id_date(config_filename, config_path)
-    lads.set_pm_id_only_table(df_pm_id_only)
-    lads.generate_pm_id_date_table(save = False)  #uses self.out_df_pm_id_only to create pm_id_date_table.csv
+    df_pm_id_only = acf.create_new_csv_from_self_join()  
+    acf.fill_project_info(df_pm_id_only)
+
+    #lads = link_all_datasets_pm_id_date(config_filename, config_path)
+    #lads.set_pm_id_only_table(df_pm_id_only)
+    #lads.generate_pm_id_date_table(save = False)  #uses self.out_df_pm_id_only to create pm_id_date_table.csv
+
+    #pic = project_ID_column(config_filename, config_path)
+    #pic.fill_project_info("per_pm_id_date")
 
 if __name__ == "__main__":
     fire.Fire(main)
