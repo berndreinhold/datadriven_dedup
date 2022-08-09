@@ -199,27 +199,6 @@ class add_constraints_filters_per_pm_id():
         df["count_belongs_to_projects"] = df.apply(lambda x: len(x["belongs_to_projects"].split(join_by)), axis=1)
 
 
-
-class project_ID_column():
-    """
-    regardless of the uploader type assign them to the OPENonOH (project B) or OpenAPS (project A) project
-    """
-    def __init__(self, config_filename : str, config_path : str):
-        f = open(os.path.join(config_path, config_filename))
-        # reading the IO_json config file
-        IO_json = json.load(f)
-        self.root_data_dir_name = IO_json["root_data_dir_name"]
-        self.output = IO_json["link_all_datasets"]["output"]
-
-        # self.output = IO_json["output"]
-        self.count_datasets = len(IO_json["link_all_datasets"]["individual"])
-        self.IO_json = IO_json
-
-    # read both files
-
-
-
-
 def main(config_filename : str = "config_all.json", config_path : str = ""):
     acf = add_constraints_filters_per_pm_id(config_filename, config_path)
     df_pm_id_only = acf.create_new_csv_from_self_join()  
@@ -228,9 +207,6 @@ def main(config_filename : str = "config_all.json", config_path : str = ""):
     #lads = link_all_datasets_pm_id_date(config_filename, config_path)
     #lads.set_pm_id_only_table(df_pm_id_only)
     #lads.generate_pm_id_date_table(save = False)  #uses self.out_df_pm_id_only to create pm_id_date_table.csv
-
-    #pic = project_ID_column(config_filename, config_path)
-    #pic.fill_project_info("per_pm_id_date")
 
 if __name__ == "__main__":
     fire.Fire(main)
