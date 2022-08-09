@@ -16,6 +16,30 @@ These tables are saved as csv-files (one per table).
 These tables are then the only input for plotting (pairwise_plot.py, upsetplot_venn3.ipynb, days_per_person_n_dataset.ipynb)
 """
 
+def entry_datasets_association(df):
+    """
+    Add two columns to df which describe to which datasets a row belongs and to how many different datasets.
+    and save it to a csv file
+    outside the class, since self is not needed
+    """
+    def belongs_to_datasets(row : list, column_list : list, join_by=","):
+        """
+        just used for the lambda-function below
+        """
+        buffer = []
+        for col in column_list:
+            if not "pm_id" in col: continue
+
+            if row[col] is not nan and row[col] > 0:
+                col_id = col.split("_")[-1]  # col: pm_id_1
+                buffer.append(col_id)
+        return join_by.join(sorted(buffer))
+
+    #dataset-variable: 1-2-3
+    #"belongs to" count datasets: 
+    df["belongs_to_datasets"] = df.apply(lambda row: belongs_to_datasets(row, df.columns), axis=1)
+    df["count_belongs_to_datasets"] = df.apply(lambda x: len(x["belongs_to_datasets"].split(",")), axis=1)
+
 
 
 class link_all_datasets_pm_id_only():
@@ -60,7 +84,8 @@ class link_all_datasets_pm_id_only():
         It is important to do this last minute, otherwise the belongs_to_dataset-columns cause problems while joining.
         """
         df = self.out_df_pm_id_only
-        self.entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
+        df = df.reindex(sorted(df.columns),axis=1)  # sort pm_id and person_id columns
+        entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
         df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
         print(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
 
@@ -160,28 +185,6 @@ class link_all_datasets_pm_id_only():
         self.out_df_pm_id_only = dfs_merged["last_row"]  # make it available throughout the class
 
 
-    def entry_datasets_association(self, df):
-        """
-        Add two columns to df which describe to which datasets a row belongs and to how many different datasets.
-        and save it to a csv file
-        """
-        def belongs_to_datasets(row : list, column_list : list, join_by=","):
-            """
-            just used for the lambda-function below
-            """
-            buffer = []
-            for col in column_list:
-                if not "pm_id" in col: continue
-
-                if row[col] is not nan and row[col] > 0:
-                    col_id = col.split("_")[-1]  # col: pm_id_1
-                    buffer.append(col_id)
-            return join_by.join(sorted(buffer))
-
-        #dataset-variable: 1-2-3
-        #"belongs to" count datasets: 
-        df["belongs_to_datasets"] = df.apply(lambda row: belongs_to_datasets(row, df.columns), axis=1)
-        df["count_belongs_to_datasets"] = df.apply(lambda x: len(x["belongs_to_datasets"].split(",")), axis=1)
 
 
 
@@ -257,9 +260,16 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
         self.out_df_pm_id_date = pd.DataFrame()  # make the dataframe "per pm_id_date" available throughout the class, it is the collection of all self.df_pm_id_date-dataframes
         # dictionary of the individual datasets merged with self.out_df_pm_id_only (thereby receiving the person_id-variable)
         self.df_pm_id_date = {"ind" : [], "dupl" : {}}  # individual datasets are organized in a list, the duplicate datasets in a dictionary with keys like '0-1', '0-2', '1-2'
-        
+        self.external_pm_id_only_table = False
 
-    def generate_pm_id_date_table(self, save : bool = False):
+    def set_pm_id_only_table(self, df_pm_id_only):
+        """
+        this is an alternative way of making the dataframe "per pm_id_only" available to the class compared to generating it via generate_pm_id_only_table()
+        """
+        self.external_pm_id_only_table = True
+        self.out_df_pm_id_only = df_pm_id_only
+
+    def generate_pm_id_date_table(self):
         """
         - use the self.out_df_pm_id table to generate the self.out_df_pm_id_date-table
         - add the person_id variable to all the individual datasets and duplicate datasets.
@@ -309,10 +319,11 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
         self.out_df_pm_id_date = df # dfs_merged["last_row"]  # make it available throughout the class
 
     def __del__(self):
-        super().__del__()
+        if not self.external_pm_id_only_table: super().__del__()
         outfilename, ext = os.path.splitext(self.output["per_pm_id_date"][1])
         df = self.out_df_pm_id_date
-        self.entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
+        df = df.reindex(sorted(df.columns),axis=1)  # sort pm_id and person_id columns
+        entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
         df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id_date"][0], outfilename + ext))
         print(os.path.join(self.root_data_dir_name, self.output["per_pm_id_date"][0], outfilename + ext))
 
@@ -370,7 +381,7 @@ class link_all_datasets_pm_id_date(link_all_datasets_pm_id_only):
 def main(config_filename : str = "config_all.json", config_path : str = ""):
     lads = link_all_datasets_pm_id_date(config_filename, config_path)
     lads.generate_pm_id_only_table()
-    lads.generate_pm_id_date_table(save = False)  # requires generate_pm_id_only_table() to have been called before
+    lads.generate_pm_id_date_table()  # requires generate_pm_id_only_table() to have been called before
     # a project_member_id_list can be specified in the config_all.json file (config_all.json is created via generate_config_json.py and can then be adjusted by the user)
     #lads.project_member_id_list_as_filter(lads.out_df_pm_id_only, "pm_id")
     #lads.project_member_id_list_as_filter(lads.out_df_pm_id_date, "pm_id_date")
