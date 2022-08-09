@@ -58,7 +58,8 @@ class pairwisePlot():
         # affects the sequence in the legend and which one is drawn on top of each other
         for i, dataset_index in enumerate(dataset_indices):
             #c = [colors[f"{ds}"] for ds in df["dataset"].astype(int).values]
-            self.plot_one_dataset(ax, i, dataset_indices)
+            dataset_labels = self.output[pair_i]["axis_label"]
+            self.plot_one_dataset(ax, dataset_labels, i, dataset_indices)
 
         # x-axis date formatting
         plt.xlim(self.min_date - pd.Timedelta(days = 100), self.max_date + pd.Timedelta(days = 100))  # 100 days as a margin for plotting
@@ -86,7 +87,7 @@ class pairwisePlot():
         plt.savefig(os.path.join(self.root_data_dir_name, self.output[pair_i]["img"][0], self.output[pair_i]["img"][1]))
 
 
-    def plot_one_dataset(self, ax, i, dataset_indices):
+    def plot_one_dataset(self, ax, dataset_labels, i, dataset_indices):
         """
         plot one dataframe identified by the dataset variable.
         """
@@ -100,11 +101,11 @@ class pairwisePlot():
             # pm_id as project member id
             selection =  ~pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & pd.isna(df[f"pm_id_{dataset_indices[1]}"])
             color_ = colors[f"{dataset_indices[i]}"]
-            label_ = self.output[dataset_indices[i]]["axis_label"][0]
+            label_ = dataset_labels[0]
         elif i == 1:
             selection =  pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"pm_id_{dataset_indices[1]}"])
             color_ = colors[f"{dataset_indices[i]}"]
-            label_ = self.output[dataset_indices[i]]["axis_label"][1]
+            label_ = dataset_labels[1]
         elif i == 2:  # duplicates
             selection =  ~pd.isna(df[f"pm_id_{dataset_indices[0]}"]) & ~pd.isna(df[f"pm_id_{dataset_indices[1]}"])
             color_ = colors["duplicates"]
