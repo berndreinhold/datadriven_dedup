@@ -170,9 +170,19 @@ class add_constraints_filters_per_pm_id():
         
         fn, ext = os.path.splitext(self.output[var][1])
         new_outfile_name = f"{fn}_with_project_info{ext}"
+
+        type_convert = {}
+        for col in df.columns:
+            if col.startswith("pm_id") or col.startswith("project"):
+                type_convert[col] = pd.Int64Dtype()  # float64 to Int64Dtype() to avoid problems with NaNs and have the pm_id's not represented as 12345678.0
+                # Int64 did not work: gave negative values
+
+        df = df.astype(type_convert)
+
         df.to_csv(os.path.join(self.root_data_dir_name, self.output[var][0], new_outfile_name))
         print("saved as: ", os.path.join(self.root_data_dir_name, self.output[var][0], new_outfile_name), ", shape: ", df.shape)
 
+        
     def entry_projects_association(self,df):
         """
         Add two columns to df which describe to which projects a row belongs and to how many different datasets.
