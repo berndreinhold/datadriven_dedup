@@ -19,6 +19,43 @@ takes a directory containing files with a file_ending specified in the config fi
 Params = namedtuple("Params", ['head', 'tail', 'filename', 'first', 'second'])
 
 
+def search_key(json_input, search_key_ : str, data_ : list, cols : list):
+    """
+    search all instances of search_key_ in json_input, which can be of different data types
+    if it is a list, call search_key() recursively 
+    in case of a dict, either call search_key() on the value of the (key,value)-pair
+
+    expects timestamp to comply with ISO8601 format, which e.g. 2019-02-03T09:38:20.000Z does
+
+    cols: a list of column names expected to be "rate", "duration", "timestamp"
+    """
+    assert(cols[0]=="rate")
+    assert(cols[1]=="duration")
+    assert(cols[2]=="timestamp")
+    if isinstance(json_input, list):
+        for item in json_input:
+            search_key(item, search_key_, data_, cols)
+    elif isinstance(json_input, dict):
+        for key_, value_ in json_input.items():
+            if key_ == search_key_:
+                unix_ts = -1
+                try:
+                    # raises an exception, if the format is unexpected
+                    # recognized format: 2019-02-03T09:38:20.000Z
+                    unix_ts = (pd.to_datetime(value_[cols[2]], infer_datetime_format=True) - pd.Timestamp("1970-01-01", tz='UTC')) / pd.Timedelta('1s')
+                except Exception as e:
+                    logging.debug(f"Error(unix_ts): {e}, {key_}, {value_}")
+
+                try:
+                    data_.append([value_[cols[0]], value_[cols[1]], unix_ts, value_[cols[2]]])
+                except KeyError as e:
+                    logging.debug(f"KeyError: {e}, {key_}, {value_}")
+                except Exception as e:
+                    logging.debug(f"Error: {e}, {key_}, {value_}")
+            else:
+                search_key(value_, search_key_, data_, cols)
+
+
 class duplicates_json2csv(object):
     """
     process the BG data of OPENonOH
@@ -38,8 +75,7 @@ class duplicates_json2csv(object):
         self.dataset = dataset
         self.root_data_dir_name = IO_json["root_data_dir_name"]
 
-        datasets = [x for x in IO_json["duplicates_json2csv"].keys(
-        ) if "comment" and "logging" not in x]
+        datasets = [x for x in IO_json["duplicates_json2csv"].keys() if "comment" and "logging" not in x]
         assert(self.dataset in datasets)
 
         self.json_input = IO_json["duplicates_json2csv"][self.dataset]["input"]
@@ -48,8 +84,8 @@ class duplicates_json2csv(object):
 
         self.in_dir_name = os.path.join(
             self.root_data_dir_name, self.json_input["dir_name"])
-        self.in_columns = IO_json["columns"]
-        self.out_columns = self.in_columns 
+        self.in_columns = IO_json["in_columns"]
+        self.out_columns = IO_json["out_columns"] 
 
         self.file_ending = self.json_input["file_ending"]
 
@@ -80,7 +116,7 @@ class duplicates_json2csv(object):
         logging.debug(f"error_statistics: {self.error_statistics}")
         logging.info(self.__class__.__name__)
 
-    def one_json2csv(self, dir_name: str, infile_name: str, outfile_name: str):
+    def one_json2csv(self, dir_name: str, infile_name: str, outfile_name: str, i : int):
         """
         input: this function reads a json-file
         algo:
@@ -88,33 +124,47 @@ class duplicates_json2csv(object):
         - filters a subset of columns
         output: produces an output csv file with one entry being one line in the output file
 
+        search for the "enacted" keyword
         """
-        data = list()
+        enacted_instances = list()
         with open(os.path.join(dir_name, infile_name)) as f:
-            entries = json.load(f)
+            try:
+                entries = json.load(f)
+            except Exception as e:
+                logging.debug(f"Error: {e}")
             if len(entries) < 1:
                 logging.info(
-                    f"{infile_name} has 0 entries, therefore no output.")
+                    f"{i}, {infile_name} has 0 entries, therefore no output.")
                 return
+            else:
+                logging.info(
+                    f"{i}, {infile_name} has {len(entries)} entries.")
 
-            for i, entry in enumerate(entries):
-                if "type" not in entry: continue
-                if not entry["type"] == "sgv":
-                    continue
+            search_key(entries, "enacted", enacted_instances, self.in_columns)  # rate, duration, unix_timestamp, datetime (string)
+            #print(enacted_instances)
+
+            if len(enacted_instances) < 1: 
+                print(f"no 'enacted' found in file {infile_name}.")
+                #if not entry["type"] == "sgv":
+                #    continue
+            for i in range(0):
+                if i < 1: continue
                 try:
                     # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
-                    pd.to_datetime(entry["dateString"])
-                    # date, dateString, sgv are mandatory variables, if one of them is wrong or missing create an exception
-                    # the noise variable is optional, if it is missing, it is set to -1
-                    if "noise" in entry:
-                        data.append([entry[column]
-                                    for column in self.in_columns])
-                    else:
-                        # put the noise variable to -1, if it is not present
-                        new_entry = [-1]
-                        # add the columns except noise
-                        new_entry.extend([entry[column] for column in self.in_columns if "noise" not in column])
-                        data.append(new_entry)
+                    pd.to_datetime(entry["timestamp"])
+                    # noise, sgv, date, dateString 
+                    data.append([entry["enacted"]["rate"], entry["enacted"]["duration"], -1, entry["enacted"]["timestamp"]])
+                    
+                    if 0:
+                        if "noise" in entry:
+                            data.append([entry[column]
+                                        for column in self.in_columns])
+                        else:
+                            # put the noise variable to -1, if it is not present
+                            new_entry = [-1]
+                            # add the columns except noise
+                            new_entry.extend([entry[column] for column in self.in_columns if "noise" not in column])
+                            data.append(new_entry)
                 except KeyError as e:
                     logging.debug("KeyError: ", e, entry)
                     if e in self.key_error_statistics.keys():
@@ -128,24 +178,26 @@ class duplicates_json2csv(object):
                     else:
                         self.error_statistics[e] = 1
 
-            df = pd.DataFrame(data=data, columns=self.out_columns)
+            df = pd.DataFrame(data=enacted_instances, columns=self.out_columns)
             os.makedirs(os.path.join(self.root_data_dir_name,
                         self.out_dir_name), exist_ok=True)
             df.to_csv(os.path.join(self.root_data_dir_name,
                       self.out_dir_name, outfile_name))
+            #logging.info(f"{os.path.join(self.root_data_dir_name, self.out_dir_name, outfile_name)} written.")
             del entries
-        del data
+        del enacted_instances
 
     def all_entries_json2csv(self):
         file_list = sorted(glob.glob(os.path.join(
-            f"{self.in_dir_name}", "**", "direct-sharing-31", "**", f"entries*.{self.file_ending}"), recursive=True))
+            f"{self.in_dir_name}", "**", "direct-sharing-31", "**", f"devicestatus*.{self.file_ending}"), recursive=True))
         logging.info(f"number of files: {len(file_list)}")
         logging.info(file_list[:3])  # head
         logging.info(file_list[-3:])  # and tail
+        #logging.info(file_list)
 
         for i, f in enumerate(file_list):
-            if i % 10 == 0:
-                logging.info(f"{i}, {f}")
+            if not (i > 27  and i <= 28): continue
+            #logging.info(f"{i}, {f}")
             head, tail = os.path.split(f)
             sub_dirs = head[len(self.in_dir_name):]
             dir_name_components = sub_dirs.split("/")
@@ -157,13 +209,14 @@ class duplicates_json2csv(object):
                 if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + second + "_" + filename + ".csv")):
                     continue
                 self.one_json2csv(head, tail, first + "_" +
-                                second + "_" + filename + ".csv")
+                                second + "_" + filename + ".csv", i)
             else:  # 2022 data: n=101_OPENonOH_07.07.2022 
                 first = dir_name_components[1]
                 filename, _ = os.path.splitext(tail)
-                if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + filename + ".csv")):
-                    continue
-                self.one_json2csv(head, tail, first + "_" + filename + ".csv")
+                #if os.path.isfile(os.path.join(self.out_dir_name, first + "_" + filename + ".csv")):
+                #    continue
+                self.one_json2csv(head, tail, first + "_" + filename + ".csv", i)
+    
     def extract_json_gz(self, dir_name):
         # for the OpenAPS_NS (nightscout) dataset
         # gunzip json.gz to json files
@@ -176,8 +229,9 @@ class duplicates_json2csv(object):
         search_string = os.path.join(
             f"{dir_name}", "**", f"*.{self.file_ending}.gz")
         logging.info(search_string)
-        json_gz = set([x[:-3]
+        json_gz = set([x
                       for x in sorted(glob.glob(search_string, recursive=True))])
+        print(json_gz)
         json_ = set(sorted(glob.glob(search_string[:-3], recursive=True)))
 
         if len(json_gz ^ json_) > 0:
