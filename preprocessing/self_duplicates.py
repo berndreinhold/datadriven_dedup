@@ -37,7 +37,8 @@ class self_duplicates(object):
         self.root_data_dir_name = IO_json["root_data_dir_name"]
         self.IO_json = IO_json["self_duplicates"]
         
-        self.datasets = [x for x in self.IO_json.keys() if "comment" and "logging" not in x]
+        # self.datasets = [x for x in self.IO_json.keys() if "comment" and "logging" not in x]
+        self.datasets = ["OPENonOH_NS"]
         self.sgv_columns = ["sgv_mean", "sgv_std", "sgv_min", "sgv_max", "sgv_count"]  # sgv: single (?) glucose value (see json files)
 
         self.df = {}
@@ -76,7 +77,7 @@ class self_duplicates(object):
             df_groupby = self.list_self_duplicates(dataset)
             self.clean_self_duplicates(df_groupby, dataset)
 
-def main(config_filename : str = "IO.json", config_path : str = "."):
+def main(dataset : str = "", config_filename : str = "IO.json", config_path : str = "."):
 
     sd = self_duplicates(config_filename, config_path)
     sd.loop()
