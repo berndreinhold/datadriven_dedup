@@ -1,6 +1,7 @@
 from distutils.command.config import config
 import json
 import os
+import zipfile
 from collections import namedtuple
 import pandas as pd
 import glob
@@ -8,7 +9,7 @@ import fire
 import logging
 import datetime
 import numpy as np
-
+import shutil
 
 """
 call as: python3 duplicates_json2csv.py --dataset=[...] [--config_filename=IO.json] [--config_path="."]
@@ -27,8 +28,12 @@ def search_key(json_input, search_key_ : str, data_ : list, cols : list):
 
     expects timestamp to comply with ISO8601 format, which e.g. 2019-02-03T09:38:20.000Z does
 
+    Actually match just the keys in a key-value pair.
+    Do it in a case-insensitive manner.
+
     cols: a list of column names expected to be "rate", "duration", "timestamp"
     """
+    search_key_ = search_key_.lower()
     assert(cols[0]=="rate")
     assert(cols[1]=="duration")
     assert(cols[2]=="timestamp")
@@ -37,7 +42,7 @@ def search_key(json_input, search_key_ : str, data_ : list, cols : list):
             search_key(item, search_key_, data_, cols)
     elif isinstance(json_input, dict):
         for key_, value_ in json_input.items():
-            if key_ == search_key_:
+            if search_key_ in key_.lower():
                 unix_ts = -1
                 try:
                     # raises an exception, if the format is unexpected
@@ -54,6 +59,9 @@ def search_key(json_input, search_key_ : str, data_ : list, cols : list):
                     logging.debug(f"Error: {e}, {key_}, {value_}")
             else:
                 search_key(value_, search_key_, data_, cols)
+    else:
+        raise TypeError(f"json_input should be either a list or dict, but was {type(json_input)}: {json_input}")
+
 
 
 class duplicates_json2csv(object):
@@ -124,9 +132,9 @@ class duplicates_json2csv(object):
         - filters a subset of columns
         output: produces an output csv file with one entry being one line in the output file
 
-        search for the "enacted" keyword
+        # search for the "enacted" keyword
         """
-        enacted_instances = list()
+        keyword_instances = list()
         with open(os.path.join(dir_name, infile_name)) as f:
             try:
                 entries = json.load(f)
@@ -140,7 +148,7 @@ class duplicates_json2csv(object):
                 logging.info(
                     f"{i}, {infile_name} has {len(entries)} entries.")
 
-            search_key(entries, "enacted", enacted_instances, self.in_columns)  # rate, duration, unix_timestamp, datetime (string)
+            search_key(entries, "Setting temp basal", keyword_instances, self.in_columns)  # rate, duration, unix_timestamp, datetime (string)
             #print(enacted_instances)
 
             if len(enacted_instances) < 1: 
@@ -153,7 +161,7 @@ class duplicates_json2csv(object):
                     # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
                     pd.to_datetime(entry["timestamp"])
                     # noise, sgv, date, dateString 
-                    data.append([entry["enacted"]["rate"], entry["enacted"]["duration"], -1, entry["enacted"]["timestamp"]])
+                    data.append([entry["enacted"]["rate"], entry["enacted"]["duration"], -1, entry["enacted"]["timestamp"], infile_name])
                     
                     if 0:
                         if "noise" in entry:
@@ -265,6 +273,9 @@ class duplicates_json2csv(object):
 
         for the options see "man unzip": -n never overwrite existing files.  If a file already exists, skip the extraction of that file without prompting
         """
+        file_list = ["BgReadings.json", "APSData.json", "TemporaryBasals.json", "Treatments.json", "TempTargets.json", "CareportalEvents.json", \
+            "ProfileSwitches.json", "ApplicationInfo.json", "Preferences.json", "DeviceInfo.json", "DisplayInfo.json", "UploadInfo.json"]
+
         search_string = os.path.join(dir_name, "**", f"*.zip")
         logging.info(search_string)
         # zipped and zipped_files are necessary, since the BgReadings.json and the upload...zip are in the same directory,
@@ -283,6 +294,7 @@ class duplicates_json2csv(object):
             logging.debug(
                 f"BgReadings.json files without zip file in the same directory: {extracted - zipped}")
 
+        """
         for i, f in enumerate(zipped_files):
             head, tail = os.path.split(f)
             if head not in zipped - extracted:
@@ -290,6 +302,29 @@ class duplicates_json2csv(object):
             os.system(f"unzip {unzip_option} {f} -d {head}")
             if i % 100 == 0:
                 logging.info(f"{i}, {f}")
+        """
+
+        for i, f in enumerate(sorted(glob.glob(search_string, recursive=True))):   # get the list of files
+            head, tail = os.path.split(f)
+            pm_id = head[len(self.root_data_dir_name):]
+            pm_id = pm_id.split("/")[1]
+            if tail.startswith("nightscout"): continue
+            #if head not in zipped - extracted:
+            #    continue
+            if zipfile.is_zipfile(f): # if it is a zipfile, extract it
+                
+                with zipfile.ZipFile(f) as item: # treat the file as a zip
+                    item.extractall()  # extract it in the working directory
+                    if i % 100 == 0:
+                        logging.info(f"{i}, {f}")
+                    #print(file)
+                    x = tail.split("-")
+                    num = int(x[1].replace('num', ''))
+                    date = x[3].replace('date', '')
+
+                    for file_ in file_list:
+                        if os.path.exists(file_):
+                            shutil.move(file_, os.path.join("/media/reinhold/Elements/OPENonOH_07.07.2022/", f'{self.dataset}_{pm_id}_{num:03}_{date}_{file_}'))
 
     def kinds_of_files(self, dir_name):
         """
@@ -312,14 +347,20 @@ class duplicates_json2csv(object):
 
         return file_types
 
-    def loop(self):
+    def loop(self, unzip : bool = False):
         """
         loop through all available files and do the same thing on each file
         """
         if "_NS" in self.dataset:
-            self.extract_json_gz(self.in_dir_name)
+            if unzip: 
+                self.extract_json_gz(self.in_dir_name)
+            else: 
         elif "_AAPS_Uploader" in self.dataset:
-            self.extract_AAPS_Uploader_zip(self.in_dir_name)
+            if unzip: 
+                self.extract_AAPS_Uploader_zip(self.in_dir_name)
+            else: 
+                print("self.extract_AAPS_Uploader_zip(self.in_dir_name) temporarily disabled!")
+
         file_types = self.kinds_of_files(self.in_dir_name)
         logging.info(file_types)
         self.all_entries_json2csv()
@@ -542,7 +583,7 @@ class duplicates_json2csv_OPENonOH_AAPS_Uploader(duplicates_json2csv_OpenAPS_AAP
         focus on AndroidAPS Uploader uploads: 
         """
         file_list = sorted(glob.glob(os.path.join(
-            f"{self.in_dir_name}", "**", "direct-sharing-396", "**", "*BgReadings.json"), recursive=True))
+            f"{self.in_dir_name}", "**", "direct-sharing-396", "**", "*APSData.json"), recursive=True))  # BGReadings.json for bg data analysis, APSData for pump info
         logging.info(f"number of files: {len(file_list)}")
         logging.info(file_list[:3])  # head
         logging.info(file_list[-3:])  # and tail
