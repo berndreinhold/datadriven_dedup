@@ -1,6 +1,7 @@
 from distutils.command.config import config
 import json
 import os
+from typing import Dict
 import zipfile
 from collections import namedtuple
 import pandas as pd
@@ -19,6 +20,7 @@ takes a directory containing files with a file_ending specified in the config fi
 """
 Params = namedtuple("Params", ['head', 'tail', 'filename', 'first', 'second'])
 
+AID_DATA = True  # process AID data (instead of plasma glucose data), this affects which flavor of one_json2csv() is called
 
 def search_key(json_input, search_key_ : str, data_ : list, cols : list):
     """
@@ -61,6 +63,45 @@ def search_key(json_input, search_key_ : str, data_ : list, cols : list):
                 search_key(value_, search_key_, data_, cols)
     else:
         raise TypeError(f"json_input should be either a list or dict, but was {type(json_input)}: {json_input}")
+
+def search_key_2(json_input, search_key_ : str, data_ : list, pm_id : int, measurement_counter : int, date_ : str):
+    """
+    search all instances of search_key_ in json_input, which can be of different data types
+    if it is a list, call search_key() recursively 
+    in case of a dict, either call search_key() on the key or the value of the (key,value)-pair
+
+    expects timestamp to comply with ISO8601 format, which e.g. 2019-02-03T09:38:20.000Z does
+
+    pm_id: project member id
+    data_ expects the string, that matched search_key_ and the date_ as provided as a parameter (e.g. from the filename)
+    """
+    search_key_ = search_key_.lower()
+    if isinstance(json_input, int) or isinstance(json_input, float):
+        pass
+    elif isinstance(json_input, str):
+        if search_key_ in json_input.lower():
+            #print(json_input, date_)
+            data_.append([date_, pm_id, measurement_counter, json_input])
+    elif isinstance(json_input, list):
+        for item in json_input:
+            search_key_2(item, search_key_, data_, pm_id, measurement_counter, date_)
+    elif isinstance(json_input, dict):
+        for key_, value_ in json_input.items():
+            if  isinstance(key_, str):
+                if search_key_ in key_.lower():
+                    #print(key_, date_)
+                    data_.append([date_, pm_id, measurement_counter, key_])
+            elif isinstance(key_, dict):
+                search_key_2(key_, search_key_, data_, pm_id, measurement_counter, date_)
+
+            if isinstance(value_, str):
+                if search_key_ in value_.lower():
+                    #print(value_, date_)
+                    data_.append([date_, pm_id, measurement_counter, value_])
+            elif isinstance(value_, dict) or isinstance(value_, list):
+                search_key_2(value_, search_key_, data_, pm_id, measurement_counter, date_)
+    else:
+        raise TypeError(f"json_input should be one of a str, int, list or dict, but was {type(json_input)}: {json_input}")
 
 
 
@@ -120,8 +161,8 @@ class duplicates_json2csv(object):
         logging.debug(self.dataset)
 
     def __del__(self):
-        logging.debug(f"key_error_statistics: {self.key_error_statistics}")
-        logging.debug(f"error_statistics: {self.error_statistics}")
+        logging.info(f"key_error_statistics: {self.key_error_statistics}")
+        logging.info(f"error_statistics: {self.error_statistics}")
         logging.info(self.__class__.__name__)
 
     def one_json2csv(self, dir_name: str, infile_name: str, outfile_name: str, i : int):
@@ -354,7 +395,8 @@ class duplicates_json2csv(object):
         if "_NS" in self.dataset:
             if unzip: 
                 self.extract_json_gz(self.in_dir_name)
-            else: 
+            else:
+                print("self.extract_json_gz(self.in_dir_name) temporarily disabled!") 
         elif "_AAPS_Uploader" in self.dataset:
             if unzip: 
                 self.extract_AAPS_Uploader_zip(self.in_dir_name)
@@ -363,8 +405,10 @@ class duplicates_json2csv(object):
 
         file_types = self.kinds_of_files(self.in_dir_name)
         logging.info(file_types)
-        self.all_entries_json2csv()
-
+        if AID_DATA:
+            self.all_entries_json2csv_AID()
+        else:
+            self.all_entries_json2csv()
 
 class duplicates_json2csv_OpenAPS_NS(duplicates_json2csv):
     """
@@ -508,6 +552,110 @@ class duplicates_json2csv_OpenAPS_AAPS_Uploader(duplicates_json2csv_OpenAPS_NS):
                       self.out_dir_name, outfile_name))
             del entries
         del data
+
+    def one_json2csv_AID(self, dir_name: str, infile_name: str, outfile_name: str):
+        """
+        input: this function reads a json-file
+        algo:
+        - flattens the structure
+        - filters a subset of columns
+        output: produces an output csv file with one entry being one line in the output file
+
+        """
+        data = list()
+
+        in_columns = ["value", "date"]
+        with open(os.path.join(dir_name, infile_name)) as f:
+            filename, ext = os.path.splitext(infile_name)
+            print(filename)
+            assert(ext==".json")
+            fn_components = filename.split("_")
+            assert (fn_components[-1]=="APSData")
+            measurement_counter = int(fn_components[-3])
+            pm_id = int(fn_components[-4])
+            
+            date_ = datetime.datetime.strptime(fn_components[-2], '%Y%m%dT%H%M%S')
+            entries = json.load(f)
+            search_key_2(entries, "Setting temp basal", data, pm_id, measurement_counter, datetime.datetime.strftime(date_, "%Y-%m-%d"))
+            if len(entries) < 1:
+                logging.info(
+                    f"{infile_name} has 0 entries, therefore no output.")
+                return
+            for i, entry in enumerate(entries):
+                
+                try:
+                    # pd.to_datetime(entry["date"])  # raises an exception, if the format is unexpected, thereby avoiding it being appended to data
+                    # noise,
+                    row = ["1"]
+                    row.extend([entry[column] for column in in_columns])
+                    # unix_timestamp in ms is a 13 digit number, in s it is a 10 digit number (in 2022)
+                    date_factor = 1.0
+                    if np.log10(entry["date"]) > 12 and np.log10(entry["date"]) < 13:
+                        date_factor = 0.001
+                    row.append(datetime.datetime.utcfromtimestamp(
+                        int(entry["date"]*date_factor)).strftime('%Y-%m-%d %H:%M:%S'))  # date is in msec
+                    data.append(row)
+                except KeyError as e:
+                    if e in self.key_error_statistics.keys():
+                        self.key_error_statistics[e] += 1
+                    else:
+                        self.key_error_statistics[e] = 1
+                except Exception as e:
+                    if e in self.error_statistics.keys():
+                        self.error_statistics[e] += 1
+                    else:
+                        self.error_statistics[e] = 1
+
+            df = pd.DataFrame(data=data, columns=["date_", "pm_id", "measurement_counter", "matched_string"])
+            os.makedirs(os.path.join(self.root_data_dir_name,
+                        self.out_dir_name), exist_ok=True)
+            df.to_csv(os.path.join(self.root_data_dir_name,
+                      self.out_dir_name, outfile_name))
+            del entries
+        del data
+
+
+    def all_entries_json2csv_AID(self):
+        """
+        focus on AndroidAPS Uploader uploads: direct-sharing-396
+        in_dir_name: AndroidAPS_Uploader/ (see IO.json)
+        """
+        file_list = sorted(glob.glob(os.path.join(
+            f"{self.in_dir_name}", "**", "*APSData.json"), recursive=True))
+        logging.info(f"number of files: {len(file_list)}")
+        logging.info(file_list[:3])  # head
+        logging.info(file_list[-3:])  # and tail
+        for i, f in enumerate(file_list):
+            # if i<80: continue
+            head, tail = os.path.split(f)
+            if i % 10 == 0:
+                logging.info(f"{i}, {head}, {tail}")
+            filename, _ = os.path.splitext(tail)
+            # tail = OPENonOH_AAPS_Uploader_00749582_010_20210215T164854_APSData.json
+            # tail = OPENonOH_AAPS_Uploader_00749582_100_20210515T113607_APSData.json
+            components = filename.split("_")
+            first, second = components[3], components[4] + "_" + components[5]
+
+            if os.path.isfile(os.path.join(self.root_data_dir_name, self.out_dir_name, filename + ".csv")):
+                continue
+
+            params = Params(head, tail, filename, first, second)
+
+            if i % 10 == 0:
+                logging.info(", ".join(
+                    [f"{x}: {params[i]}" for i, x in enumerate(params._asdict().keys())]))
+            self.one_json2csv_AID(head, tail, filename + ".csv")
+
+
+    def not_needed(self):
+            try:
+                1 == 1
+
+            except (ValueError, Exception) as e:
+                if e in self.error_statistics.keys():
+                    self.error_statistics[e] += 1
+                else:
+                    self.error_statistics[e] = 1
 
     def all_entries_json2csv(self):
         """
