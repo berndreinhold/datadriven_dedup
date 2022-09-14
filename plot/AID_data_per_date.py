@@ -36,7 +36,7 @@ def plot():
         df = pd.read_csv(f, header=0, parse_dates=[1])
         df2 = pd.DataFrame(data=df["pm_id"].unique(), columns=["pm_id"])
         df2.sort_values(by="pm_id", inplace=True)
-        df2["person_id"] = np.arange(len(df2))
+        df2["person_counter"] = np.arange(len(df2))
 
         df3 = df.merge(df2, on="pm_id")
 
@@ -46,12 +46,10 @@ def plot():
     ax2 = fig.add_subplot(gs[1], sharey=ax1)
     ax2.tick_params(axis="y", labelleft=False)
     
-    label_0 = "OPENonOH AID data"  # returns e.g. "OPENonOH"
-    label_1 = "project member ID"
-    fig.suptitle(f"""OPENonOH AID data (AAPS_Uploader)\n{label_0}, {label_1}""")
+    fig.suptitle(f"""OPENonOH AID data (AAPS_Uploader)""")
 
     x = df3["date"].values
-    y = df3["person_id"].values
+    y = df3["person_counter"].values
     print (x, y)
     
     ax1.scatter(x,y, marker='s', s=1)
@@ -61,17 +59,17 @@ def plot():
     fig.autofmt_xdate()
     ax1.grid()
 
-    df3["person_id"].hist(ax=ax2, bins=max(y)-min(y) + 1, orientation="horizontal")
+    df3["person_counter"].hist(ax=ax2, bins=max(y)-min(y) + 1, orientation="horizontal")
     ax2.set_xlabel("number of measurements")
 
     ax1.set_xlabel("date")
-    ax1.set_ylabel("person ID")
+    ax1.set_ylabel("person counter")
     plt.setp( ax1.get_xticklabels(),  rotation            = 30,
                                         horizontalalignment = 'right'
                                         )
     #plt.legend(loc="upper left", markerscale=4, framealpha=0.5)
     plt.tight_layout()
-    plt.show()
+    #plt.show()
     plt.savefig(os.path.join(root_data_dir_name, "img", "AID_data_OPENonOH_AAPS_Uploader_per_date.png"))
 
 
@@ -87,7 +85,7 @@ def test():
     df["date"] = pd.to_datetime(df["date"],format="%Y-%m-%d")
     df["pm_id_1"] = df[" pm_id_1"].astype(int)
     df2 = pd.read_csv(os.path.join(root_data_dir_name, input2[0], input2[1]), header=0)
-    df2["person_id"] = range(len(df2))
+    df2["person_counter"] = range(len(df2))
     df2["pm_id_1"] = df2[" pm_id_1"].astype(int)
     print(df.columns, df2.columns)
     df3 = df.merge(df2, on="pm_id_1")
@@ -102,7 +100,7 @@ def test():
     label_1 = "project member ID"
     
     x = df3["date"].values
-    y = df3["person_id"].values
+    y = df3["person_counter"].values
     print (x, y)
     
     ax.scatter(x,y, marker='s', s=1)
@@ -114,7 +112,7 @@ def test():
 
     plt.title(f"""OPENonOH AID data (NS)\n{label_0}, {label_1}""")
     plt.xlabel("date")
-    plt.ylabel("person ID")
+    plt.ylabel("person counter")
     plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
                                         horizontalalignment = 'right'
                                         )
@@ -133,7 +131,7 @@ def main():
     df["date"] = pd.to_datetime(df["date"],format="%Y-%m-%d")
     df["pm_id_1"] = df[" pm_id_1"].astype(int)
     df2 = pd.read_csv(os.path.join(root_data_dir_name, input2[0], input2[1]), header=0)
-    df2["person_id"] = range(len(df2))
+    df2["person_counter"] = range(len(df2))
     df2["pm_id_1"] = df2[" pm_id_1"].astype(int)
     print(df.columns, df2.columns)
     df3 = df.merge(df2, on="pm_id_1")
@@ -148,7 +146,7 @@ def main():
     label_1 = "project member ID"
     
     x = df3["date"].values
-    y = df3["person_id"].values
+    y = df3["person_counter"].values
     print (x, y)
     
     ax.scatter(x,y, marker='s', s=1)
@@ -160,7 +158,7 @@ def main():
 
     plt.title(f"""OPENonOH AID data (NS)\n{label_0}, {label_1}""")
     plt.xlabel("date")
-    plt.ylabel("person ID")
+    plt.ylabel("person counter")
     plt.setp( plt.gca().get_xticklabels(),  rotation            = 30,
                                         horizontalalignment = 'right'
                                         )
