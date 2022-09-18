@@ -84,6 +84,13 @@ class link_all_datasets_pm_id_only():
         It is important to do this last minute, otherwise the belongs_to_dataset-columns cause problems while joining.
         """
         df = self.out_df_pm_id_only
+
+        type_convert = {}
+        for col in df.columns:
+            if col.startswith("pm_id"):
+                type_convert[col] = "int"
+ 
+        df = df.astype(type_convert)
         df = df.reindex(sorted(df.columns),axis=1)  # sort pm_id and person_id columns
         entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
         df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
