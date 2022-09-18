@@ -72,7 +72,7 @@ class duplicates_aggregation(object):
             df2.reset_index(inplace=True)
             df2["filename"] = tail
             fn_components = tail.split("_")
-            df2["user_id"] = fn_components[0]
+            df2["pm_id"] = fn_components[0]
             
             self.df_list.append(df2)
 
