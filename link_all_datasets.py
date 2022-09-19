@@ -85,12 +85,6 @@ class link_all_datasets_pm_id_only():
         """
         df = self.out_df_pm_id_only
 
-        type_convert = {}
-        for col in df.columns:
-            if col.startswith("pm_id"):
-                type_convert[col] = "int"
- 
-        df = df.astype(type_convert)
         df = df.reindex(sorted(df.columns),axis=1)  # sort pm_id and person_id columns
         entry_datasets_association(df)  # adds two columns to dfs_merged["last_row"] and saves it to disk
         df.to_csv(os.path.join(self.root_data_dir_name, self.output["per_pm_id"][0], self.output["per_pm_id"][1]))
@@ -105,7 +99,8 @@ class link_all_datasets_pm_id_only():
         for i, ds in enumerate(self.input_individual):
             infile = self.input_individual[i]
             self.df["ind"].append(pd.read_csv(os.path.join(self.root_data_dir_name, infile[0], infile[1]), header=0, parse_dates=[1], index_col=0))
-            self.df["ind"][i][f"pm_id_{i}"] = self.df["ind"][i][f"pm_id_{i}"].astype(int)
+            self.df["ind"][i][f"pm_id_{i}"] = self.df["ind"][i][f"pm_id"].astype(int)  # rename pm_id to pm_id_0, pm_id_1, etc., and convert to int
+            self.df["ind"][i].drop(columns=["pm_id"]) # drop pm_id, since these are not unique anymore in the presence of many datasets
             self.df["ind"][i] = self.df["ind"][i][["date", f"pm_id_{i}"]]
             self.df["ind"][i][f"label_{i}"] = infile[3]  # machine readable label
             self.df["ind"][i]["date"] = pd.to_datetime(self.df["ind"][i]["date"],format="%Y-%m-%d")
