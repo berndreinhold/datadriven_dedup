@@ -21,14 +21,6 @@ with two uploaders each: Nightscout (NS) and AndroidAPS Uploader (AAPS_Uploader)
 (Certain day/user-id pairs were more than 2 and up to 8 times in the respective datasets.
 Each entry was kept only once and the others were removed before proceeding further.)
 
-## raw data csv files
-### Plasma Glucose (PG)
-- [data_per_pm_id.csv](data_per_pm_id.csv)
-- [data_per_pm_id_date.csv](data_per_pm_id_date.csv)
-### Automatic Insulin Delivery (AID) data
-- [AID_data_per_pm_id.csv](AID_data_per_pm_id.csv)
-- [AID_data_per_pm_id_date.csv](AID_data_per_pm_id_date.csv)
-
 ## Plasma Glucose [UpSetPlot](https://pypi.org/project/UpSetPlot/)s
 <img src="img/upsetplot_per_pm_id_date.png" width=50% alt="upsetplot_per_pm_id_date"/>
 <img src="img/upsetplot_per_pm_id.png" width=50% alt="upsetplot_per_pm_id" />
