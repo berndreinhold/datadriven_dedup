@@ -12,11 +12,12 @@ import numpy as np
 from numpy import nan
 
 
-def preparation():
-    root_data_dir_name = "/home/reinhold/Daten/dana_processing/OPENonOH_AAPS_Uploader_Data/"
+
+
+def preparation(root_data_dir_name):
     
     df_list = []
-    for i, f in enumerate(glob.glob(os.path.join(root_data_dir_name, "per_measurement_csv_AID/", "**", "*APSData.csv"), recursive=True)):
+    for i, f in enumerate(glob.glob(os.path.join(root_data_dir_name, "per_measurement_csv_AID/", "**", "*.csv"), recursive=True)):
         #if i%500==0: print(i, f)
         df_list.append(pd.read_csv(f, header=0, parse_dates=[1]))
         df_list[-1]["date"] = pd.to_datetime(df_list[-1]["date_"],format="%Y-%m-%d")
@@ -29,10 +30,9 @@ def preparation():
     df2.to_csv(os.path.join(root_data_dir_name,"AID_data_per_pm_id_date.csv"))
     return df2
 
-def plot():
-    root_data_dir_name = "/home/reinhold/Daten/dana_processing/OPENonOH_AAPS_Uploader_Data/"
+def plot(root_data_dir_name, dataset_dir, suptitle, fig_name):
     df3 = pd.DataFrame()
-    with open(os.path.join(root_data_dir_name, "AID_data_per_pm_id_date.csv")) as f:
+    with open(os.path.join(root_data_dir_name, dataset_dir, "AID_data_per_pm_id_date.csv")) as f:
         df = pd.read_csv(f, header=0, parse_dates=[1])
         df2 = pd.DataFrame(data=df["pm_id"].unique(), columns=["pm_id"])
         df2.sort_values(by="pm_id", inplace=True)
@@ -46,12 +46,13 @@ def plot():
     ax2 = fig.add_subplot(gs[1], sharey=ax1)
     ax2.tick_params(axis="y", labelleft=False)
     
-    fig.suptitle(f"""OPENonOH AID data (AAPS_Uploader)""")
+    
 
     x = df3["date"].values
     y = df3["person_counter"].values
     print (x, y)
-    
+
+    fig.suptitle(f"{suptitle}\n({len(y)} person-days), keywords: \"Setting temp basal\"")
     ax1.scatter(x,y, marker='s', s=1)
 
     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
@@ -70,13 +71,26 @@ def plot():
     #plt.legend(loc="upper left", markerscale=4, framealpha=0.5)
     plt.tight_layout()
     #plt.show()
-    plt.savefig(os.path.join(root_data_dir_name, "img", "AID_data_OPENonOH_AAPS_Uploader_per_date.png"))
+    plt.savefig(os.path.join(root_data_dir_name, "img", fig_name))
 
 
 
 def main_AAPS_Uploader():
-    #preparation()
-    plot()
+    root_data_dir_name = "/home/reinhold/Daten/dana_processing/"
+    suptitle = """OPENonOH AID data (AAPS_Uploader)"""
+    fig_name = "AID_data_OPENonOH_AAPS_Uploader_per_date.png"
+    dataset_dir = "OPENonOH_AAPS_Uploader_Data/"
+    # preparation(os.path.join(root_data_dir_name, dataset_dir))
+    plot(root_data_dir_name, dataset_dir, suptitle, fig_name)
+
+def main_NS():
+    root_data_dir_name = "/home/reinhold/Daten/dana_processing/"
+    suptitle = """OPENonOH AID data (NightScout)"""
+    fig_name = "AID_data_OPENonOH_NS_per_date.png"
+    dataset_dir = "OPENonOH_NS_Data/"
+    # preparation(os.path.join(root_data_dir_name, dataset_dir))
+    plot(root_data_dir_name, dataset_dir, suptitle, fig_name)
+
 
 
 def test():
@@ -170,3 +184,4 @@ def main():
 if __name__ == "__main__":
     #main()
     main_AAPS_Uploader()
+    main_NS()
