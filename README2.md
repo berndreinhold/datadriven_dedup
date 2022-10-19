@@ -51,3 +51,20 @@ Explain the usage of different but closely related variables to identify persons
 ### FAQ
 - if you need to implement new ways of determining duplicates, then do it as part of [section 2](#2-find-pairwise-duplicate-entries-in-datasets)
 - if you want to add new datasets, you have to adjust the whole chain.
+
+## AID: automatic insulin delivery
+- the OPENonOH data analysis focuses on persons that are using AID systems.
+- therefore the OPENonOH data for the AAPS Uploader and the nightscout uploader are analysed for the following keyword: "" ("enacted" could )
+- Days with these keywords are considered days, where the user was using AID. 
+- data_json_2_csv.py is used to extract the AID data from the json files and to create the csv files: ```/home/reinhold/Daten/dana_processing/OPENonOH_AAPS_Uploader_Data/per_measurement_csv_AID```
+- ```preprocessing/OPENonOH_NS_devicestatus.csv``` was created via: ```:~/Daten/dana_processing/n=101_OPENonOH_07.07.2022$ find . -iname "devicestatus*" -exec ls -l {} \; | awk '{print $5, $NF}' | sort -n``` followed by some manual editing in libreoffice calc
+and correspondingly for ```preprocessing/OPENonOH_NS_entries.csv```: ```reinhold@Eddimed-lnx01:~/Daten/dana_processing/n=101_OPENonOH_07.07.2022$ find . -iname "entries*" -exec ls -l {} \; | grep -v "parts" | awk '{print $5, $(NF)}' | sort -n``` plus manual editing
+
+- the files in the csv file are prefixed with the project member id (pm_id) and saved to ```/home/reinhold/Daten/dana_processing/jsonsplit_OPENonOH_NS_Data```
+- there they are processed and files bigger than 50 MB are split into smaller files 
+
+
+- introduced an additional step of flatening the file structure of the json files before data_json_2_csv.py. Needs to be adapted in the glob search strings.
+- check_json.py
+- the json files of the AID data are completely separate from their BG counter parts. Inside data_json_2_csv.py they can be considered as separate classes.
+- person_counter as opposed to person_id, as it is just a counter and not a unique identifier
