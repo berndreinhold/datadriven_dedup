@@ -1,8 +1,3 @@
-<script
-  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
-  type="text/javascript">
-</script>
-
 ```
 start date: 14.4.2022 (European date format)
 last edit: 14.4.2022
@@ -77,5 +72,5 @@ and correspondingly for ```preprocessing/OPENonOH_NS_entries.csv```: ```reinhold
 ## Equations
 
 $$
-\text{sym_diff}_{x}(\text{ds}_i,\text{ds}_j) = 2\cdot\frac{x_{\text{ds}_i} - x_{\text{ds}_j}}{x_{\text{ds}_i} + x_{\text{ds}_j}}\quad\quad\text{for x in mean, stddev, min, max, count and}\quad\quad \text{i,j in range(number of datasets)}
+\text{sym\_diff}_{x}(\text{ds}_i,\text{ds}_j) = 2\cdot\frac{x_{\text{ds}_i} - x_{\text{ds}_j}}{x_{\text{ds}_i} + x_{\text{ds}_j}}\quad\quad\text{for x in mean, stddev, min, max, count and}\quad\quad \text{i,j in range(number of datasets)}
 $$
