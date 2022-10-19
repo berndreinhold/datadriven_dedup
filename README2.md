@@ -1,3 +1,8 @@
+<script
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+  type="text/javascript">
+</script>
+
 ```
 start date: 14.4.2022 (European date format)
 last edit: 14.4.2022
@@ -68,3 +73,9 @@ and correspondingly for ```preprocessing/OPENonOH_NS_entries.csv```: ```reinhold
 - check_json.py
 - the json files of the AID data are completely separate from their BG counter parts. Inside data_json_2_csv.py they can be considered as separate classes.
 - person_counter as opposed to person_id, as it is just a counter and not a unique identifier
+
+## Equations
+
+$$
+\text{sym_diff}_{x}(\text{ds}_i,\text{ds}_j) = 2\cdot\frac{x_{\text{ds}_i} - x_{\text{ds}_j}}{x_{\text{ds}_i} + x_{\text{ds}_j}}\quad\quad\text{for x in mean, stddev, min, max, count and}\quad\quad \text{i,j in range(number of datasets)}
+$$
